@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import type { CricketCardStats } from "@/lib/cricketStats";
+import type { CricketCardStats, Platform, Tier } from "@/lib/cricketStats";
 
-const TIER_THEME: Record<
-  string,
-  { fill: [string, string]; frame: string; accent: string; ribbon: string; ribbonText: string; glow: string; confetti: string[] }
-> = {
+type TierTheme = {
+  fill: [string, string];
+  frame: string;
+  accent: string;
+  ribbon: string;
+  ribbonText: string;
+  glow: string;
+  confetti: string[];
+};
+
+const GITHUB_THEME: Record<Tier, TierTheme> = {
   Bronze: {
     fill: ["#e9d5b7", "#c9a874"],
     frame: "#8a5a3c",
@@ -46,6 +53,55 @@ const TIER_THEME: Record<
   },
 };
 
+// LeetCode gets its own identity — graphite/steel through Bronze/Silver, a compiler-amber
+// Gold, and a violet-amber-graphite Legend — distinct enough from GitHub's navy/red/gold
+// that the two platforms read as different collectibles, not a reskin of one card.
+const LEETCODE_THEME: Record<Tier, TierTheme> = {
+  Bronze: {
+    fill: ["#e6e4de", "#b7b3a8"],
+    frame: "#5b5b52",
+    accent: "#5b5b52",
+    ribbon: "linear-gradient(90deg,#8a8677,#5b5b52)",
+    ribbonText: "#F4F1E8",
+    glow: "drop-shadow(0 0 22px rgba(139,134,119,0.55))",
+    confetti: ["#8a8677", "#5b5b52"],
+  },
+  Silver: {
+    fill: ["#eef2f5", "#c1ccd4"],
+    frame: "#7a8a95",
+    accent: "#5b6b76",
+    ribbon: "linear-gradient(90deg,#e4ecf0,#aebcc4)",
+    ribbonText: "#1B1B18",
+    glow: "drop-shadow(0 0 22px rgba(122,138,149,0.55))",
+    confetti: ["#e4ecf0", "#7a8a95"],
+  },
+  Gold: {
+    fill: ["#ffe3bd", "#e2852b"],
+    frame: "#E2852B",
+    accent: "#8a4a12",
+    ribbon: "linear-gradient(90deg,#E2852B,#8a4a12)",
+    ribbonText: "#F4F1E8",
+    glow: "drop-shadow(0 0 30px rgba(226,133,43,0.7))",
+    confetti: ["#E2852B", "#ffdca6", "#8a4a12"],
+  },
+  Legend: {
+    fill: ["#ffe9c9", "#f0a94a"],
+    frame: "#1B1B18",
+    accent: "#6C3FA6",
+    ribbon: "linear-gradient(90deg,#E2852B,#6C3FA6,#1B1B18)",
+    ribbonText: "#F4F1E8",
+    glow: "drop-shadow(0 0 40px rgba(226,133,43,0.85))",
+    confetti: ["#E2852B", "#6C3FA6", "#1B1B18", "#ffe9c9"],
+  },
+};
+
+const THEME_BY_PLATFORM: Record<Platform, Record<Tier, TierTheme>> = {
+  github: GITHUB_THEME,
+  leetcode: LEETCODE_THEME,
+};
+
+const PLATFORM_LABEL: Record<Platform, string> = { github: "GITHUB", leetcode: "LEETCODE" };
+
 const ROLE_ABBR: Record<string, string> = {
   Batsman: "BAT",
   Bowler: "BWL",
@@ -63,7 +119,7 @@ function initials(name: string, login: string) {
 export default function CricketCard({ card, celebrate = true }: { card: CricketCardStats; celebrate?: boolean }) {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const theme = TIER_THEME[card.tier];
+  const theme = THEME_BY_PLATFORM[card.platform][card.tier];
   const ref = useRef<HTMLDivElement>(null);
 
   // pointer-tracked 3D tilt — springy so it settles instead of snapping
@@ -145,7 +201,7 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
             <stop offset="100%" stopColor={theme.fill[1]} />
           </linearGradient>
           <clipPath id={`shield-${card.login}`}>
-            <path d="M8 24 C8 12 20 6 150 4 C280 6 292 12 292 24 L292 300 C292 360 230 400 150 416 C70 400 8 360 8 300 Z" />
+            <path d="M8 44 C8 20 40 8 150 8 C260 8 292 20 292 44 L292 380 C292 402 260 412 150 412 C40 412 8 402 8 380 Z" />
           </clipPath>
           <radialGradient id={`avatar-mask-${card.login}`} cx="50%" cy="42%" r="46%">
             <stop offset="72%" stopColor="white" stopOpacity="1" />
@@ -156,13 +212,16 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
           </mask>
         </defs>
 
-        {/* card body */}
+        {/* card body — a cricket pavilion "honours board" plaque, not a FIFA shield */}
         <path
-          d="M8 24 C8 12 20 6 150 4 C280 6 292 12 292 24 L292 300 C292 360 230 400 150 416 C70 400 8 360 8 300 Z"
+          d="M8 44 C8 20 40 8 150 8 C260 8 292 20 292 44 L292 380 C292 402 260 412 150 412 C40 412 8 402 8 380 Z"
           fill={`url(#fill-${card.login})`}
           stroke={theme.frame}
           strokeWidth={3}
         />
+        {/* nail-hole detail — plaques hang from a nail; a small nod to the honours-board motif */}
+        <circle cx="150" cy="26" r="3.5" fill={theme.accent} opacity={0.6} />
+        <circle cx="150" cy="26" r="1.3" fill="#1B1B18" opacity={0.5} />
 
         <g clipPath={`url(#shield-${card.login})`}>
           {/* photo, faded into the card via radial mask so it blends rather than sits boxed */}
@@ -193,6 +252,10 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
         </text>
         <text x="26" y="98" fontSize="13" fontWeight="700" letterSpacing="1" fill="#1B1B18" opacity={0.8}>
           {ROLE_ABBR[card.role]}
+        </text>
+        <rect x="26" y="106" width={PLATFORM_LABEL[card.platform].length * 6.4 + 12} height="16" rx="8" fill={theme.accent} opacity={0.16} />
+        <text x="32" y="117" fontSize="9" fontWeight="700" letterSpacing="1" fill={theme.accent}>
+          {PLATFORM_LABEL[card.platform]}
         </text>
 
         {/* name plaque */}

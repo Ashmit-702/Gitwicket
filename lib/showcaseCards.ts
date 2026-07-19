@@ -7,6 +7,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
   {
     login: "torvalds",
     name: "Linus Torvalds",
+    platform: "github",
     avatarUrl: "https://github.com/torvalds.png",
     role: "Batsman",
     tier: "Legend",
@@ -35,6 +36,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
   {
     login: "gaearon",
     name: "Dan Abramov",
+    platform: "github",
     avatarUrl: "https://github.com/gaearon.png",
     role: "All-rounder",
     tier: "Gold",
@@ -63,6 +65,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
   {
     login: "you",
     name: "Your name here",
+    platform: "github",
     avatarUrl:
       "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzJGNkIzQyIvPjx0ZXh0IHg9IjEwMCIgeT0iMTE4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI2NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI0Y0RjFFOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+WU9VPC90ZXh0Pjwvc3ZnPg==",
     role: "Bowler",
@@ -88,5 +91,35 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
     accountAgeYears: 1.5,
     activeYears: 1,
     signatureStat: "Still finding their game",
+  },
+  {
+    login: "neetcode",
+    name: "NeetCode",
+    platform: "leetcode",
+    avatarUrl:
+      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI0UyODUyQiIvPjx0ZXh0IHg9IjEwMCIgeT0iMTE4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI2NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI0Y0RjFFOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TkM8L3RleHQ+PC9zdmc+",
+    role: "Bowler",
+    tier: "Legend",
+    rating: 94,
+    strikeRate: 180,
+    battingAverage: 88,
+    wickets: 320,
+    economy: 2.4,
+    boundaries: 540,
+    catches: 42,
+    cardStats: [
+      { label: "Strike rate", abbr: "STR", value: 80 },
+      { label: "Batting avg", abbr: "AVG", value: 88 },
+      { label: "Wickets", abbr: "WKT", value: 96 },
+      { label: "Economy", abbr: "ECO", value: 91 },
+      { label: "Boundaries", abbr: "BND", value: 93 },
+      { label: "Catches", abbr: "CAT", value: 85 },
+    ],
+    scoutingMetrics: [],
+    attributes: [],
+    playstyles: ["Death Bowler", "Marathoner"],
+    accountAgeYears: 6,
+    activeYears: 6,
+    signatureStat: "Wicket-taking menace",
   },
 ];

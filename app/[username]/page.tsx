@@ -66,7 +66,7 @@ export default async function UserCardPage({ params }: Props) {
 
         <PageReveal delay={0} y={28} className="order-1 flex flex-col items-center lg:order-2">
           <CricketCard card={card} />
-          <ShareButton login={card.login} name={card.name} rating={card.rating} tier={card.tier} />
+          <ShareButton login={card.login} name={card.name} rating={card.rating} tier={card.tier} platform="github" />
           <a
             href={`/compare?with=${card.login}`}
             className="mt-3 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"

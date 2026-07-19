@@ -11,7 +11,7 @@ export default function ScoutingMetrics({ card }: { card: CricketCardStats }) {
           <span className="h-px w-4 bg-bail" /> Scouting metrics
         </p>
         <p className="mb-4 font-body text-xs text-chalk/50">
-          The raw GitHub numbers behind this card, and exactly which stat each one feeds.
+          The raw {card.platform === "github" ? "GitHub" : "LeetCode"} numbers behind this card, and exactly which stat each one feeds.
         </p>
 
         <div className="space-y-4">

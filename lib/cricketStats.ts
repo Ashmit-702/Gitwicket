@@ -2,6 +2,7 @@ import type { RawGithubStats } from "./github";
 
 export type Role = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
 export type Tier = "Bronze" | "Silver" | "Gold" | "Legend";
+export type Platform = "github" | "leetcode";
 
 export interface CardStat {
   label: string;
@@ -26,6 +27,7 @@ export interface CricketCardStats {
   login: string;
   name: string;
   avatarUrl: string;
+  platform: Platform;
   role: Role;
   tier: Tier;
   rating: number; // out of 99 — shown big on the card, labeled "RATING" (never "OVR")
@@ -46,13 +48,13 @@ export interface CricketCardStats {
   signatureStat: string;
 }
 
-const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+export const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
-function curve(x: number, midpoint: number): number {
+export function curve(x: number, midpoint: number): number {
   return clamp(Math.round(99 * (1 - Math.exp(-Math.max(0, x) / midpoint))), 0, 99);
 }
 
-const toStars = (score: number) => clamp(Math.round(score / 20), 1, 5);
+export const toStars = (score: number) => clamp(Math.round(score / 20), 1, 5);
 
 export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   const accountAgeYears = Math.max(
@@ -205,6 +207,7 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
     login: raw.login,
     name: raw.name ?? raw.login,
     avatarUrl: raw.avatarUrl,
+    platform: "github",
     role,
     tier,
     rating,

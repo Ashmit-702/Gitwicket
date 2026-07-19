@@ -7,20 +7,23 @@ export default function ShareButton({
   name,
   rating,
   tier,
+  platform = "github",
 }: {
   login: string;
   name: string;
   rating: number;
   tier: string;
+  platform?: "github" | "leetcode";
 }) {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const platformLabel = platform === "github" ? "GitHub" : "LeetCode";
   const pageUrl = typeof window !== "undefined" ? window.location.href : `https://gitwicket.dev/${login}`;
-  const tweetText = `I just rated my GitHub as a ${rating} RTG ${tier}-tier cricket card on GitWicket 🏏\n\nRate yours:`;
+  const tweetText = `I just rated my ${platformLabel} as a ${rating} RTG ${tier}-tier cricket card on GitWicket 🏏\n\nRate yours:`;
 
   async function handleShare() {
-    const shareData = { title: `${name}'s GitWicket card`, text: `Check out ${name}'s GitHub cricket card`, url: pageUrl };
+    const shareData = { title: `${name}'s GitWicket card`, text: `Check out ${name}'s ${platformLabel} cricket card`, url: pageUrl };
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

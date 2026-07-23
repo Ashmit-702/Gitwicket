@@ -70,14 +70,14 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
     0,
     99
   );
-  const wickets = raw.pullRequestsMerged + raw.reviews;
+  const wickets = raw.pullRequestsMerged + raw.reviews + Math.round(raw.repoCount * 1.2);
   const economy = clamp(
     Number((10 - Math.log10(raw.stars + 1) * 1.8 - Math.log10(raw.followers + 1) * 0.6).toFixed(1)),
     2,
     10
   );
   const boundaries = raw.stars;
-  const catches = raw.reviews;
+  const catches = raw.reviews + Math.round(raw.issuesClosed / 5);
 
   // --- uniform 0-99 sub-scores — these are what actually appear on the card face ---
   const battingScore = battingAverage;
@@ -149,14 +149,21 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
       raw: raw.pullRequestsMerged,
       suffix: "merged all-time",
       score: curve(raw.pullRequestsMerged, 40),
-      explanation: "Shipped work, not just opened — the core of Wickets.",
+      explanation: "Shipped work through a PR workflow — one of three things feeding Wickets, alongside reviews given and repos shipped solo.",
     },
     {
       label: "Code reviews",
       raw: raw.reviews,
       suffix: "given this year",
       score: catchScore,
-      explanation: "Reviews given to others — feeds Catches.",
+      explanation: "Reviews given to others, plus issues you've closed — feeds Catches.",
+    },
+    {
+      label: "Repos shipped",
+      raw: raw.repoCount,
+      suffix: "owned, non-fork repos",
+      score: curve(raw.repoCount, 15),
+      explanation: "Solo-built projects count too — feeds Wickets alongside PRs and reviews, so working alone doesn't zero this out.",
     },
     {
       label: "Issues closed",

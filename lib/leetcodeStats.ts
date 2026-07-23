@@ -18,7 +18,7 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   const acceptanceRate = raw.totalSubmissions > 0 ? (raw.acceptedSubmissions / raw.totalSubmissions) * 100 : 0;
   const economy = clamp(Number((10 - (acceptanceRate / 100) * 8).toFixed(1)), 2, 10);
   const boundaries = raw.mediumSolved;
-  const catches = raw.contestsAttended;
+  const catches = raw.contestsAttended + Math.round(raw.totalSolved / 150);
 
   // --- uniform 0-99 sub-scores — same curve function as GitHub, different inputs ---
   // Midpoints below are calibrated against rough real-world personas (a few months in,
@@ -99,7 +99,7 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
       raw: raw.contestsAttended,
       suffix: "rated contests",
       score: catchScore,
-      explanation: "Showing up when it's live — feeds Catches.",
+      explanation: "Showing up when it's live, plus overall volume solved — feeds Catches, so grinders who skip contests aren't zeroed out.",
     },
     {
       label: "Contest rating",

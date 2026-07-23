@@ -23,7 +23,7 @@ const ROWS = [
   },
   {
     stat: "Catches (CAT)",
-    copy: "Rated contests entered — showing up when it's live, not just grinding the archive.",
+    copy: "Rated contests entered, plus overall problems solved — so grinders who never touch the contest feature still get credit, not just competitive solvers.",
   },
 ];
 

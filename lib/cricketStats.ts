@@ -85,8 +85,8 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   // the underlying count is 0 — which is an extremely common, not-actually-worst-case
   // scenario (no stars yet, no reviews given yet, etc). A small floor keeps a real but
   // modest profile from reading identically to a genuinely empty/abandoned account.
-  const SOFT_FLOOR = 16;
-  const BATTING_FLOOR = 10;
+  const SOFT_FLOOR = 33;
+  const BATTING_FLOOR = 20;
   const softened = (score: number, floor = SOFT_FLOOR) => Math.round(floor + score * (1 - floor / 99));
 
   const battingScore = softened(battingAverage, BATTING_FLOOR);

@@ -6,6 +6,7 @@ import AttributesPanel from "@/components/AttributesPanel";
 import ScoutingMetrics from "@/components/ScoutingMetrics";
 import DistributionChart from "@/components/DistributionChart";
 import ShareButton from "@/components/ShareButton";
+import CountryPicker from "@/components/CountryPicker";
 import PageReveal from "@/components/PageReveal";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +71,7 @@ export default async function LeetCodeCardPage({ params, searchParams }: Props) 
         <PageReveal delay={0} y={28} className="order-1 flex flex-col items-center lg:order-2">
           <CricketCard card={card} />
           <ShareButton login={card.login} name={card.name} rating={card.rating} tier={card.tier} platform="leetcode" />
+          <CountryPicker />
         </PageReveal>
 
         <PageReveal delay={0.15} className="order-3 space-y-6">

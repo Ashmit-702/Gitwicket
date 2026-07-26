@@ -28,6 +28,7 @@ export interface CricketCardStats {
   name: string;
   avatarUrl: string;
   platform: Platform;
+  country?: string;
   role: Role;
   tier: Tier;
   rating: number; // out of 99 — shown big on the card, labeled "RATING" (never "OVR")
@@ -80,12 +81,20 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   const catches = raw.reviews + Math.round(raw.issuesClosed / 5);
 
   // --- uniform 0-99 sub-scores — these are what actually appear on the card face ---
-  const battingScore = battingAverage;
-  const strikeScore = curve(strikeRate, 75);
+  // Four of these (strike/economy/boundary/catch) mathematically hit exactly 0 whenever
+  // the underlying count is 0 — which is an extremely common, not-actually-worst-case
+  // scenario (no stars yet, no reviews given yet, etc). A small floor keeps a real but
+  // modest profile from reading identically to a genuinely empty/abandoned account.
+  const SOFT_FLOOR = 16;
+  const BATTING_FLOOR = 10;
+  const softened = (score: number, floor = SOFT_FLOOR) => Math.round(floor + score * (1 - floor / 99));
+
+  const battingScore = softened(battingAverage, BATTING_FLOOR);
+  const strikeScore = softened(curve(strikeRate, 60));
   const wicketScore = curve(wickets, 26);
-  const economyScore = curve(10 - economy, 4);
-  const boundaryScore = curve(boundaries, 35);
-  const catchScore = curve(catches, 13);
+  const economyScore = softened(curve(10 - economy, 4));
+  const boundaryScore = softened(curve(boundaries, 35));
+  const catchScore = softened(curve(catches, 13));
 
   const rawOverall =
     battingScore * 0.25 +
@@ -105,13 +114,10 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
 
   const tier: Tier = rating >= 90 ? "Legend" : rating >= 78 ? "Gold" : rating >= 55 ? "Silver" : "Bronze";
 
-  const total = Math.max(1, raw.commits + raw.pullRequests + raw.reviews);
-  const reviewShare = raw.reviews / total;
-  const prShare = raw.pullRequestsMerged / Math.max(1, raw.pullRequestsMerged + raw.commits);
-  let role: Role = "Batsman";
-  if (reviewShare > 0.4) role = "Wicketkeeper";
-  else if (prShare > 0.35 && reviewShare > 0.12) role = "All-rounder";
-  else if (raw.issues + raw.pullRequests > raw.commits) role = "Bowler";
+  let role: Role = "Batsman"; // default: commit/output-driven, the common case
+  if (catchScore >= 50 && wicketScore >= 40) role = "Wicketkeeper"; // strong support play (reviews + tidy issues) alongside real shipped work
+  else if (wicketScore >= battingScore + 15 && wicketScore >= 35) role = "Bowler"; // PR/review/repo output clearly outpaces raw commit volume
+  else if (battingScore >= 45 && wicketScore >= 45) role = "All-rounder"; // strong on both fronts
 
   const cardStats: CardStat[] = [
     { label: "Strike rate", abbr: "STR", value: strikeScore },

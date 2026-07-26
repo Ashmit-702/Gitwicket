@@ -20,13 +20,26 @@ export default function Icon() {
         <div
           style={{
             display: "flex",
-            color: "#D9A93B",
-            fontSize: 21,
-            fontWeight: 800,
-            fontFamily: "sans-serif",
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background: "#C1443B",
+            border: "1.5px solid #8a2e27",
+            position: "relative",
           }}
         >
-          W
+          <div
+            style={{
+              position: "absolute",
+              top: 1,
+              left: 11,
+              width: 2,
+              height: 22,
+              background: "#F4F1E8",
+              borderRadius: 1,
+              transform: "rotate(18deg)",
+            }}
+          />
         </div>
       </div>
     ),

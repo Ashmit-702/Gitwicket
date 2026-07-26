@@ -10,7 +10,7 @@ import PageReveal from "@/components/PageReveal";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: { username: string } };
+type Props = { params: { username: string }; searchParams?: { country?: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const card = await getCard(params.username);
@@ -28,9 +28,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function UserCardPage({ params }: Props) {
+export default async function UserCardPage({ params, searchParams }: Props) {
   const card = await getCard(params.username);
   if (!card) notFound();
+  if (searchParams?.country) card.country = searchParams.country;
 
   return (
     <main className="mow-lines relative min-h-screen overflow-hidden px-6 py-8">

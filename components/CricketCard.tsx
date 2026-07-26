@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import type { CricketCardStats, Platform, Tier } from "@/lib/cricketStats";
+import { countryFlag } from "@/lib/countries";
 
 type TierTheme = {
   fill: [string, string];
@@ -257,6 +258,11 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
         <text x="32" y="117" fontSize="9" fontWeight="700" letterSpacing="1" fill={theme.accent}>
           {PLATFORM_LABEL[card.platform]}
         </text>
+        {countryFlag(card.country) && (
+          <text x="26" y="140" fontSize="20">
+            {countryFlag(card.country)}
+          </text>
+        )}
 
         {/* name plaque */}
         <text x="150" y="268" textAnchor="middle" fontSize="24" fontWeight="900" fontStyle="italic" letterSpacing="0.5" fill="#1B1B18">

@@ -9,8 +9,8 @@ import type { CricketCardStats } from "@/lib/cricketStats";
 // long climb to the Hard-problem-heavy Legend tier).
 const BUCKETS = 20; // 0-99 split into 20 buckets of ~5 points each
 const DIST_BY_PLATFORM = {
-  github: { mean: 58, std: 13 },
-  leetcode: { mean: 42, std: 18 },
+  github: { mean: 35, std: 20 },
+  leetcode: { mean: 38, std: 20 },
 };
 const ACCENT_BY_PLATFORM = {
   github: { bar: "rgba(217,169,59,0.85)", text: "text-bail", line: "border-bail/60" },

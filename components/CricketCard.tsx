@@ -258,10 +258,30 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
         <text x="32" y="117" fontSize="9" fontWeight="700" letterSpacing="1" fill={theme.accent}>
           {PLATFORM_LABEL[card.platform]}
         </text>
-        {countryFlag(card.country) && (
-          <text x="26" y="140" fontSize="20">
-            {countryFlag(card.country)}
-          </text>
+        {(countryFlag(card.country) || card.topLanguage) && (
+          <g>
+            {countryFlag(card.country) && (
+              <text x="26" y="140" fontSize="20">
+                {countryFlag(card.country)}
+              </text>
+            )}
+            {card.topLanguage && (
+              <>
+                <rect
+                  x={countryFlag(card.country) ? 54 : 26}
+                  y="130"
+                  width={card.topLanguage.length * 6.2 + 12}
+                  height="16"
+                  rx="8"
+                  fill="#1B1B18"
+                  opacity={0.1}
+                />
+                <text x={countryFlag(card.country) ? 60 : 32} y="141" fontSize="10" fontWeight="700" fill="#1B1B18" opacity={0.75}>
+                  {card.topLanguage}
+                </text>
+              </>
+            )}
+          </g>
         )}
 
         {/* name plaque */}

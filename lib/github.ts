@@ -13,6 +13,9 @@ export interface RawGithubStats {
   stars: number;
   repoCount: number;
   activeYears: number; // distinct calendar years with any contribution — real career length
+  topLanguage: string | null; // most common primary language across owned, non-fork repos
+  languageCount: number; // distinct primary languages across owned, non-fork repos
+  bio: string | null; // the profile's own bio text, if any
 }
 
 const QUERY = `
@@ -22,10 +25,11 @@ query($login: String!) {
     name
     avatarUrl
     createdAt
+    bio
     followers { totalCount }
     repositories(first: 100, ownerAffiliations: OWNER, isFork: false) {
       totalCount
-      nodes { stargazerCount }
+      nodes { stargazerCount primaryLanguage { name } }
     }
     contributionsCollection {
       totalCommitContributions
@@ -69,6 +73,20 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     0
   );
 
+  const languageCounts = new Map<string, number>();
+  for (const r of user.repositories?.nodes ?? []) {
+    const lang = r.primaryLanguage?.name;
+    if (lang) languageCounts.set(lang, (languageCounts.get(lang) ?? 0) + 1);
+  }
+  let topLanguage: string | null = null;
+  let topCount = 0;
+  for (const [lang, count] of languageCounts) {
+    if (count > topCount) {
+      topLanguage = lang;
+      topCount = count;
+    }
+  }
+
   const contributionYears: number[] = user.contributionsCollection?.contributionYears ?? [];
 
   return {
@@ -86,5 +104,8 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     stars,
     repoCount: user.repositories?.totalCount ?? 0,
     activeYears: Math.max(1, contributionYears.length),
+    topLanguage,
+    languageCount: languageCounts.size,
+    bio: user.bio || null,
   };
 }

@@ -146,12 +146,36 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   scored.sort((a, b) => b[1] - a[1]);
   const signatureStat = scored[0][1] > 0 ? scored[0][0] : "Still finding their game";
 
+  let taglineTag = "RISING TALENT";
+  let tagline = "Still finding rhythm at the crease — but building fast.";
+  if (tier === "Legend") {
+    taglineTag = "HALL OF FAME";
+    tagline = "A generational talent: high and balanced, earned over years.";
+  } else if (role === "Wicketkeeper") {
+    taglineTag = "SAFE HANDS";
+    tagline = "Solves relentlessly, day after day — the streak speaks for itself.";
+  } else if (role === "Bowler") {
+    taglineTag = "SILENT KILLER";
+    tagline = "Racks up Hard problems while everyone else is still on Easy.";
+  } else if (role === "All-rounder") {
+    taglineTag = "ONE TO WATCH";
+    tagline = "Solves fast and competes live — a genuine contest threat.";
+  } else if (tier === "Gold") {
+    taglineTag = "MATCH WINNER";
+    tagline = "The kind of solver who single-handedly turns a contest.";
+  } else if (tier === "Silver") {
+    taglineTag = "STEADY HAND";
+    tagline = "Reliable and consistent, submission after submission.";
+  }
+
   return {
     login: raw.username,
     name: raw.realName || raw.username,
     avatarUrl: raw.avatarUrl,
     platform: "leetcode",
     role,
+    taglineTag,
+    tagline,
     tier,
     rating,
     strikeRate,

@@ -58,6 +58,12 @@ export default async function UserCardPage({ params, searchParams }: Props) {
         <p className="mt-1 font-body text-sm text-chalk/60">
           {card.tier} tier {card.role} · @{card.login} · {card.signatureStat}
         </p>
+        {card.tagline && (
+          <p className="mt-2 font-body text-sm text-chalk/50">
+            <span className="font-display text-xs font-bold uppercase tracking-widest text-bail">{card.taglineTag}</span>{" "}
+            {card.tagline}
+          </p>
+        )}
       </PageReveal>
 
       {/* three-column layout */}

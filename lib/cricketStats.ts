@@ -30,6 +30,9 @@ export interface CricketCardStats {
   platform: Platform;
   country?: string;
   role: Role;
+  topLanguage?: string | null;
+  taglineTag?: string;
+  tagline?: string;
   tier: Tier;
   rating: number; // out of 99 — shown big on the card, labeled "RATING" (never "OVR")
   // literal, human-readable cricket numbers — used in the scouting panel and page copy,
@@ -114,10 +117,17 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
 
   const tier: Tier = rating >= 90 ? "Legend" : rating >= 78 ? "Gold" : rating >= 55 ? "Silver" : "Bronze";
 
+  // Role is based on which of three skill groups is strongest, not on one stat needing
+  // to totally dominate another — the old thresholds required that kind of near-total
+  // dominance, which almost never happened, so nearly everyone defaulted to Batsman.
+  const battingSkill = (battingScore + strikeScore + boundaryScore) / 3;
+  const bowlingSkill = (wicketScore + economyScore) / 2;
+  const fieldingSkill = catchScore;
+
   let role: Role = "Batsman"; // default: commit/output-driven, the common case
-  if (catchScore >= 50 && wicketScore >= 40) role = "Wicketkeeper"; // strong support play (reviews + tidy issues) alongside real shipped work
-  else if (wicketScore >= battingScore + 15 && wicketScore >= 35) role = "Bowler"; // PR/review/repo output clearly outpaces raw commit volume
-  else if (battingScore >= 45 && wicketScore >= 45) role = "All-rounder"; // strong on both fronts
+  if (fieldingSkill >= 55 && fieldingSkill >= bowlingSkill) role = "Wicketkeeper"; // strong support play (reviews + tidy issues)
+  else if (bowlingSkill >= battingSkill && bowlingSkill >= 40) role = "Bowler"; // PR/review/repo output at least matches commit volume
+  else if (battingSkill >= 45 && bowlingSkill >= 40) role = "All-rounder"; // both fronts solidly covered
 
   const cardStats: CardStat[] = [
     { label: "Strike rate", abbr: "STR", value: strikeScore },
@@ -216,12 +226,40 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   scored.sort((a, b) => b[1] - a[1]);
   const signatureStat = scored[0][1] > 0 ? scored[0][0] : "Still finding their game";
 
+  let taglineTag = "RISING TALENT";
+  let tagline = "Still finding rhythm at the crease — but building fast.";
+  if (raw.languageCount >= 5) {
+    taglineTag = "POLYGLOT";
+    tagline = `Fluent across ${raw.languageCount} languages, ${raw.topLanguage ?? "code"} most of all.`;
+  } else if (tier === "Legend") {
+    taglineTag = "HALL OF FAME";
+    tagline = "A generational talent: high and balanced, earned over years.";
+  } else if (role === "Wicketkeeper") {
+    taglineTag = "SAFE HANDS";
+    tagline = "The one every maintainer wants reviewing their PRs.";
+  } else if (role === "Bowler") {
+    taglineTag = "SILENT KILLER";
+    tagline = "Racks up wickets while nobody's watching the PR queue.";
+  } else if (role === "All-rounder") {
+    taglineTag = "ONE TO WATCH";
+    tagline = "Does damage with the bat and the ball alike.";
+  } else if (tier === "Gold") {
+    taglineTag = "MATCH WINNER";
+    tagline = "The kind of player who single-handedly turns a game.";
+  } else if (tier === "Silver") {
+    taglineTag = "STEADY HAND";
+    tagline = "Reliable and consistent, match after match.";
+  }
+
   return {
     login: raw.login,
     name: raw.name ?? raw.login,
     avatarUrl: raw.avatarUrl,
     platform: "github",
     role,
+    topLanguage: raw.topLanguage,
+    taglineTag,
+    tagline,
     tier,
     rating,
     strikeRate,

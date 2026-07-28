@@ -60,6 +60,12 @@ export default async function LeetCodeCardPage({ params, searchParams }: Props) 
         <p className="mt-1 font-body text-sm text-chalk/60">
           {card.tier} tier {card.role} · @{card.login} · {card.signatureStat}
         </p>
+        {card.tagline && (
+          <p className="mt-2 font-body text-sm text-chalk/50">
+            <span className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">{card.taglineTag}</span>{" "}
+            {card.tagline}
+          </p>
+        )}
       </PageReveal>
 
       {/* three-column layout */}

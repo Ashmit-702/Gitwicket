@@ -97,10 +97,14 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
 
   const battingScore = softened(battingAverage, BATTING_FLOOR);
   const strikeScore = softened(curve(strikeRate, 60));
-  const wicketScore = curve(wickets, 26);
+  // Widened from 26/35/13 — those midpoints meant any solidly-active maintainer (a few
+  // hundred merged PRs, a few hundred stars) already maxed these out, so a "strong"
+  // account and a genuine top-1% account scored identically. Widened just enough to
+  // give the top end real headroom without crushing the mid tier much.
+  const wicketScore = curve(wickets, 45);
   const economyScore = softened(curve(10 - economy, 4));
-  const boundaryScore = softened(curve(boundaries, 35));
-  const catchScore = softened(curve(catches, 13));
+  const boundaryScore = softened(curve(boundaries, 85));
+  const catchScore = softened(curve(catches, 22));
 
   const rawOverall =
     battingScore * 0.25 +
@@ -111,12 +115,19 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
     catchScore * 0.08;
 
   // no artificial floor — a near-empty profile should honestly show a near-empty rating,
-  // rather than every account landing around the same "35" regardless of real activity
-  let rating = clamp(Math.round(rawOverall), 8, 92);
-
+  // rather than every account landing around the same "35" regardless of real activity.
+  // Non-eligible accounts are hard-capped at 92 (can't look "Legend" without meeting the
+  // gate below); eligible accounts keep their real rawOverall instead of a flat +9 bump —
+  // the flat bump used to mean a barely-qualifying account and a genuinely elite one
+  // landed on the exact same 99, which is the opposite of "more legit rankings."
+  const preGateRating = clamp(Math.round(rawOverall), 8, 99);
   const isLegendEligible =
-    activeYears >= 4 && accountAgeYears >= 4 && raw.followers >= 400 && raw.stars >= 800 && rating >= 78;
-  if (isLegendEligible) rating = clamp(rating + 9, 8, 99);
+    activeYears >= 4 &&
+    accountAgeYears >= 4 &&
+    raw.followers >= 400 &&
+    raw.stars >= 800 &&
+    preGateRating >= 78;
+  const rating = isLegendEligible ? preGateRating : Math.min(preGateRating, 92);
 
   const tier: Tier = rating >= 90 ? "Legend" : rating >= 78 ? "Gold" : rating >= 55 ? "Silver" : "Bronze";
 

@@ -3,31 +3,31 @@ export const dynamic = "force-static";
 const ROWS = [
   {
     stat: "Strike rate (STR)",
-    copy: "Commit pace — recent commit contributions (last ~12 months), scaled to a daily rate.",
+    copy: "Solving pace — Easy, Medium, and Hard problems solved, weighted by difficulty and spread across your active years.",
   },
   {
     stat: "Batting average (AVG)",
-    copy: "Commits + 3x merged PRs + 1.5x reviews, averaged across your active years — years you actually had contributions, not just years since you signed up.",
+    copy: "Total problems solved, averaged across your active years — years you actually had submissions, not just years since you signed up.",
   },
   {
     stat: "Wickets (WKT)",
-    copy: "Merged PRs (all-time) + reviews given + a repo-count bonus. Weighted heavily and don't come cheap — a handful of merged PRs won't max this out.",
+    copy: "Hard problems solved, all-time. These are weighted heavily and don't come cheap — a handful of Hard solves won't max this out.",
   },
   {
     stat: "Economy (ECO)",
-    copy: "Reach and impact — stars and followers pull this down (in a good way; lower economy is better, same as bowling). Zero stars and zero followers means a wide-open economy.",
+    copy: "Acceptance rate — accepted submissions vs. total attempts. Fewer wasted submissions means a tighter economy.",
   },
   {
     stat: "Boundaries (BND)",
-    copy: "Total stars earned across your owned, non-fork repos.",
+    copy: "Medium problems solved, all-time.",
   },
   {
     stat: "Catches (CAT)",
-    copy: "Reviews given, plus closed issues — so maintainers and reviewers get credit, not just people shipping their own code.",
+    copy: "Rated contests entered, plus overall problems solved — so grinders who never touch the contest feature still get credit, not just competitive solvers.",
   },
 ];
 
-export default function HowItWorksGithubPage() {
+export default function HowItWorksLeetCodePage() {
   return (
     <main className="mow-lines min-h-screen px-6 py-16">
       <div className="mx-auto max-w-2xl">
@@ -35,18 +35,18 @@ export default function HowItWorksGithubPage() {
           <a href="/" className="font-display text-xs uppercase tracking-widest text-[#E2852B]">
             ← GitWicket
           </a>
-          <a href="/how-it-works/leetcode" className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-bail">
-            LeetCode version →
+          <a href="/how-it-works" className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-bail">
+            GitHub version →
           </a>
         </div>
 
         <h1 className="stagger-row mt-6 font-display text-3xl font-black uppercase italic text-chalk">
-          How GitHub gets rated
+          How LeetCode gets rated
         </h1>
         <p className="stagger-row mt-4 font-body text-sm leading-relaxed text-chalk/70">
-          GitHub cards are pulled from your public profile — commits, merged PRs, reviews, stars, and
-          followers. Same six-stat card as LeetCode, different source, and its own tier colors so you can
-          tell the two apart at a glance.
+          LeetCode cards are pulled from your public profile — solved counts, acceptance rate, and contest
+          history. Same six-stat card as GitHub, different source, and its own tier colors so you can tell
+          the two apart at a glance.
         </p>
 
         <div className="mt-10 space-y-6">
@@ -61,12 +61,11 @@ export default function HowItWorksGithubPage() {
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            A weighted blend of all six stats, ranging from 8 to 92. A small floor keeps a real but modest
-            account (a few stars, a handful of reviews) from reading identically to a genuinely empty one —
-            but it&apos;s deliberately small, so it doesn&apos;t inflate the overall number. The 90s
-            (&quot;Legend&quot; tier) are a separate gate: at least 4 active years, a 4-year-old account,
-            400+ followers, and 800+ stars. Volume alone doesn&apos;t get you there without the reach to
-            back it up.
+            A weighted blend of all six stats, ranging from 8 to 92. Hard problems and Medium problems are
+            calibrated so a realistic grinder — a few hundred solved, a modest Hard count — lands solidly in
+            Bronze-to-Silver, not maxed out. The 90s ("Legend" tier) are a separate gate: at least 3 active
+            years, a 1900+ contest rating, and 300+ problems solved. Volume alone doesn't get you there without
+            the contest strength to back it up.
           </p>
         </div>
 
@@ -83,13 +82,9 @@ export default function HowItWorksGithubPage() {
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">A note on the data</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            &quot;Active years&quot; and every stat above are pulled from GitHub&apos;s GraphQL API using a
-            single app-level token — the same thing anyone sees on your public profile when logged out.
-            That means commits to private repos (a day job at a company, for example) don&apos;t count
-            toward your active years or your batting average, even if you&apos;ve been shipping code there
-            for years. If most of your real work happens in private repos, your public-only rating will
-            read lower than your actual output — that&apos;s a limit of the public API, not a bug in the
-            scoring.
+            LeetCode doesn't publish an official public API — this pulls from the same endpoint LeetCode's own
+            site uses for public profile pages. Fields like join date aren't exposed, so "active years" is
+            approximated from years with any submission activity rather than account age.
           </p>
         </div>
       </div>

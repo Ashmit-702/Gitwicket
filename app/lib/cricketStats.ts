@@ -1,0 +1,293 @@
+import type { RawGithubStats } from "./github";
+
+export type Role = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
+export type Tier = "Bronze" | "Silver" | "Gold" | "Legend";
+export type Platform = "github" | "leetcode";
+
+export interface CardStat {
+  label: string;
+  abbr: string; // 3-letter, FUT-style
+  value: number; // 0-99, uniform across all six — this is what shows on the card face
+}
+
+export interface ScoutingMetric {
+  label: string;
+  raw: number;
+  suffix: string;
+  score: number; // 0-99
+  explanation: string;
+}
+
+export interface Attribute {
+  label: string;
+  stars: number; // 1-5
+}
+
+export interface CricketCardStats {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  platform: Platform;
+  country?: string;
+  role: Role;
+  topLanguage?: string | null;
+  taglineTag?: string;
+  tagline?: string;
+  tier: Tier;
+  rating: number; // out of 99 — shown big on the card, labeled "RATING" (never "OVR")
+  // literal, human-readable cricket numbers — used in the scouting panel and page copy,
+  // NOT on the card face (the card face uses cardStats, which are uniformly 0-99)
+  strikeRate: number;
+  battingAverage: number;
+  wickets: number;
+  economy: number;
+  boundaries: number;
+  catches: number;
+  cardStats: CardStat[];
+  scoutingMetrics: ScoutingMetric[];
+  attributes: Attribute[];
+  playstyles: string[];
+  accountAgeYears: number;
+  activeYears: number;
+  signatureStat: string;
+}
+
+export const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+
+export function curve(x: number, midpoint: number): number {
+  return clamp(Math.round(99 * (1 - Math.exp(-Math.max(0, x) / midpoint))), 0, 99);
+}
+
+export const toStars = (score: number) => clamp(Math.round(score / 20), 1, 5);
+
+export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
+  const accountAgeYears = Math.max(
+    0.1,
+    (Date.now() - new Date(raw.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365)
+  );
+  const activeYears = raw.activeYears;
+
+  // --- literal cricket numbers (human-readable, uncapped where real cricket stats are) ---
+  const strikeRate = clamp(Math.round((raw.commits / 3.65) * 1), 0, 300);
+  const battingAverage = clamp(
+    Math.round((raw.commits + raw.pullRequestsMerged * 3 + raw.reviews * 1.5) / activeYears / 4),
+    0,
+    99
+  );
+  const wickets = raw.pullRequestsMerged + raw.reviews + Math.round(raw.repoCount * 1.2);
+  const economy = clamp(
+    Number((10 - Math.log10(raw.stars + 1) * 1.8 - Math.log10(raw.followers + 1) * 0.6).toFixed(1)),
+    2,
+    10
+  );
+  const boundaries = raw.stars;
+  const catches = raw.reviews + Math.round(raw.issuesClosed / 5);
+
+  // --- uniform 0-99 sub-scores — these are what actually appear on the card face ---
+  // Four of these (strike/economy/boundary/catch) mathematically hit exactly 0 whenever
+  // the underlying count is 0 — which is an extremely common, not-actually-worst-case
+  // scenario (no stars yet, no reviews given yet, etc). A small floor keeps a real but
+  // modest profile from reading identically to a genuinely empty/abandoned account.
+  // Kept deliberately small (not the ~1/3-of-scale it used to be) — a floor this size
+  // was quietly re-inflating every mid-tier account and undoing the "stricter than
+  // gitfut" positioning; softened(50) used to jump to 66, now it barely moves.
+  const SOFT_FLOOR = 12;
+  const BATTING_FLOOR = 8;
+  const softened = (score: number, floor = SOFT_FLOOR) => Math.round(floor + score * (1 - floor / 99));
+
+  const battingScore = softened(battingAverage, BATTING_FLOOR);
+  const strikeScore = softened(curve(strikeRate, 60));
+  // Widened from 26/35/13 — those midpoints meant any solidly-active maintainer (a few
+  // hundred merged PRs, a few hundred stars) already maxed these out, so a "strong"
+  // account and a genuine top-1% account scored identically. Widened just enough to
+  // give the top end real headroom without crushing the mid tier much.
+  const wicketScore = curve(wickets, 45);
+  const economyScore = softened(curve(10 - economy, 4));
+  const boundaryScore = softened(curve(boundaries, 85));
+  const catchScore = softened(curve(catches, 22));
+
+  const rawOverall =
+    battingScore * 0.25 +
+    strikeScore * 0.2 +
+    wicketScore * 0.2 +
+    economyScore * 0.15 +
+    boundaryScore * 0.12 +
+    catchScore * 0.08;
+
+  // no artificial floor — a near-empty profile should honestly show a near-empty rating,
+  // rather than every account landing around the same "35" regardless of real activity.
+  // Non-eligible accounts are hard-capped at 92 (can't look "Legend" without meeting the
+  // gate below); eligible accounts keep their real rawOverall instead of a flat +9 bump —
+  // the flat bump used to mean a barely-qualifying account and a genuinely elite one
+  // landed on the exact same 99, which is the opposite of "more legit rankings."
+  const preGateRating = clamp(Math.round(rawOverall), 8, 99);
+  const isLegendEligible =
+    activeYears >= 4 &&
+    accountAgeYears >= 4 &&
+    raw.followers >= 400 &&
+    raw.stars >= 800 &&
+    preGateRating >= 78;
+  const rating = isLegendEligible ? preGateRating : Math.min(preGateRating, 92);
+
+  const tier: Tier = rating >= 90 ? "Legend" : rating >= 78 ? "Gold" : rating >= 55 ? "Silver" : "Bronze";
+
+  // Role is based on which of three skill groups is strongest, not on one stat needing
+  // to totally dominate another — the old thresholds required that kind of near-total
+  // dominance, which almost never happened, so nearly everyone defaulted to Batsman.
+  const battingSkill = (battingScore + strikeScore + boundaryScore) / 3;
+  const bowlingSkill = (wicketScore + economyScore) / 2;
+  const fieldingSkill = catchScore;
+
+  let role: Role = "Batsman"; // default: commit/output-driven, the common case
+  if (fieldingSkill >= 55 && fieldingSkill >= bowlingSkill) role = "Wicketkeeper"; // strong support play (reviews + tidy issues)
+  else if (bowlingSkill >= battingSkill && bowlingSkill >= 40) role = "Bowler"; // PR/review/repo output at least matches commit volume
+  else if (battingSkill >= 45 && bowlingSkill >= 40) role = "All-rounder"; // both fronts solidly covered
+
+  const cardStats: CardStat[] = [
+    { label: "Strike rate", abbr: "STR", value: strikeScore },
+    { label: "Batting avg", abbr: "AVG", value: battingScore },
+    { label: "Wickets", abbr: "WKT", value: wicketScore },
+    { label: "Economy", abbr: "ECO", value: economyScore },
+    { label: "Boundaries", abbr: "BND", value: boundaryScore },
+    { label: "Catches", abbr: "CAT", value: catchScore },
+  ];
+
+  const scoutingMetrics: ScoutingMetric[] = [
+    {
+      label: "Commits",
+      raw: raw.commits,
+      suffix: "in the last year",
+      score: strikeScore,
+      explanation: "Recent commit volume — feeds Strike Rate.",
+    },
+    {
+      label: "Stars earned",
+      raw: raw.stars,
+      suffix: "across owned repos",
+      score: boundaryScore,
+      explanation: "Total stars on your non-fork repos — feeds Boundaries.",
+    },
+    {
+      label: "Followers",
+      raw: raw.followers,
+      suffix: "followers",
+      score: curve(raw.followers, 180),
+      explanation: "Reach and influence — softens Economy alongside stars.",
+    },
+    {
+      label: "Merged PRs",
+      raw: raw.pullRequestsMerged,
+      suffix: "merged all-time",
+      score: curve(raw.pullRequestsMerged, 40),
+      explanation: "Shipped work through a PR workflow — one of three things feeding Wickets, alongside reviews given and repos shipped solo.",
+    },
+    {
+      label: "Code reviews",
+      raw: raw.reviews,
+      suffix: "given this year",
+      score: catchScore,
+      explanation: "Reviews given to others, plus issues you've closed — feeds Catches.",
+    },
+    {
+      label: "Repos shipped",
+      raw: raw.repoCount,
+      suffix: "owned, non-fork repos",
+      score: curve(raw.repoCount, 15),
+      explanation: "Solo-built projects count too — feeds Wickets alongside PRs and reviews, so working alone doesn't zero this out.",
+    },
+    {
+      label: "Issues closed",
+      raw: raw.issuesClosed,
+      suffix: "closed all-time",
+      score: curve(raw.issuesClosed, 40),
+      explanation: "Maintenance and triage — supports role detection.",
+    },
+    {
+      label: "Active years",
+      raw: activeYears,
+      suffix: activeYears === 1 ? "year with activity" : "years with activity",
+      score: curve(activeYears, 6),
+      explanation: "Distinct years you've actually contributed — powers Batting Average and the Legend gate.",
+    },
+  ];
+
+  const attributes: Attribute[] = [
+    { label: "Consistency", stars: toStars(battingScore) },
+    { label: "Power hitting", stars: toStars(boundaryScore) },
+    { label: "Control", stars: toStars(economyScore) },
+    { label: "Support play", stars: toStars(catchScore) },
+    { label: "Longevity", stars: toStars(curve(activeYears, 6)) },
+  ];
+
+  const playstyles: string[] = [];
+  if (battingAverage >= 70) playstyles.push("Century Maker");
+  if (wickets >= 30) playstyles.push("Death Bowler");
+  if (catches >= 15) playstyles.push("Safe Hands");
+  if (activeYears >= 5) playstyles.push("Marathoner");
+  if (strikeRate >= 150) playstyles.push("Rapid Fire");
+  if (boundaries >= 100) playstyles.push("Crowd Puller");
+  if (raw.followers >= 1000) playstyles.push("Franchise Player");
+  if (playstyles.length === 0) playstyles.push("Rising Talent");
+
+  const scored: [string, number][] = [
+    ["Consistent run-scorer", battingScore],
+    ["Explosive striker", strikeScore],
+    ["Wicket-taking menace", wicketScore],
+    ["Economical operator", economyScore],
+    ["Big-hitting star", boundaryScore],
+    ["Safe pair of hands", catchScore],
+  ];
+  scored.sort((a, b) => b[1] - a[1]);
+  const signatureStat = scored[0][1] > 0 ? scored[0][0] : "Still finding their game";
+
+  let taglineTag = "RISING TALENT";
+  let tagline = "Still finding rhythm at the crease — but building fast.";
+  if (raw.languageCount >= 5) {
+    taglineTag = "POLYGLOT";
+    tagline = `Fluent across ${raw.languageCount} languages, ${raw.topLanguage ?? "code"} most of all.`;
+  } else if (tier === "Legend") {
+    taglineTag = "HALL OF FAME";
+    tagline = "A generational talent: high and balanced, earned over years.";
+  } else if (role === "Wicketkeeper") {
+    taglineTag = "SAFE HANDS";
+    tagline = "The one every maintainer wants reviewing their PRs.";
+  } else if (role === "Bowler") {
+    taglineTag = "SILENT KILLER";
+    tagline = "Racks up wickets while nobody's watching the PR queue.";
+  } else if (role === "All-rounder") {
+    taglineTag = "ONE TO WATCH";
+    tagline = "Does damage with the bat and the ball alike.";
+  } else if (tier === "Gold") {
+    taglineTag = "MATCH WINNER";
+    tagline = "The kind of player who single-handedly turns a game.";
+  } else if (tier === "Silver") {
+    taglineTag = "STEADY HAND";
+    tagline = "Reliable and consistent, match after match.";
+  }
+
+  return {
+    login: raw.login,
+    name: raw.name ?? raw.login,
+    avatarUrl: raw.avatarUrl,
+    platform: "github",
+    role,
+    topLanguage: raw.topLanguage,
+    taglineTag,
+    tagline,
+    tier,
+    rating,
+    strikeRate,
+    battingAverage,
+    wickets,
+    economy,
+    boundaries,
+    catches,
+    cardStats,
+    scoutingMetrics,
+    attributes,
+    playstyles,
+    accountAgeYears: Math.round(accountAgeYears * 10) / 10,
+    activeYears,
+    signatureStat,
+  };
+}

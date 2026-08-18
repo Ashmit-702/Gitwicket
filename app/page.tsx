@@ -59,6 +59,25 @@ export default function HowItWorksGithubPage() {
         </div>
 
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Why your card has a shape</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Before the six stats above get weighted into your overall rating, each one is read against
+            the other five on <em>your own</em> card — so your strongest signal gets pushed up and your
+            weakest gets pulled down, and the shape of your card is relative to you, not a fixed bar
+            everyone&apos;s measured against. That&apos;s deliberate: two accounts with wildly different
+            raw activity can still both read as &quot;well-rounded&quot; if their six numbers are close to
+            each other, and a genuinely lopsided profile (huge on commits, nothing anywhere else) will
+            show that lean clearly.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            It&apos;s not the whole story though — each stat keeps a smaller dose of its raw, absolute
+            value mixed in underneath the shape (30%, specifically). That&apos;s what stops a genuinely
+            empty account from reading as generously as a real, balanced one just because it has &quot;no
+            weak points&quot; on paper. Mostly shape, a little grounding.
+          </p>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
             A weighted blend of all six stats, ranging from 8 to 92. A small floor keeps a real but modest

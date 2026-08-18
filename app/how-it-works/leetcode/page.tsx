@@ -59,6 +59,18 @@ export default function HowItWorksLeetCodePage() {
         </div>
 
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Why your card has a shape</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Before the six stats above get weighted into your overall rating, each one is read against
+            the other five on your own card — your strongest signal gets pushed up, your weakest gets
+            pulled down, so the shape is relative to you, not a fixed bar everyone&apos;s measured
+            against. A smaller dose of the raw, absolute value (30%) stays mixed in underneath, so a
+            genuinely empty account can&apos;t read as generously as a real, balanced one just because
+            it has no weak points on paper.
+          </p>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
             A weighted blend of all six stats, ranging from 8 to 92. Hard problems and Medium problems are

@@ -1,5 +1,5 @@
 import type { RawLeetCodeStats } from "./leetcode";
-import { clamp, curve, toStars, type CricketCardStats, type Role } from "./cricketStats";
+import { clamp, curve, shapeScores, toStars, type CricketCardStats, type Role } from "./cricketStats";
 
 export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardStats {
   const activeYears = raw.activeYears;
@@ -32,13 +32,24 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   const boundaryScore = curve(boundaries, 180);
   const catchScore = curve(catches, 10);
 
+  // Shape the six absolute scores against each other — see shapeScores doc comment in
+  // cricketStats.ts. This is what actually appears on the card face and drives the rating.
+  const [battingHyb, strikeHyb, wicketHyb, economyHyb, boundaryHyb, catchHyb] = shapeScores([
+    battingScore,
+    strikeScore,
+    wicketScore,
+    economyScore,
+    boundaryScore,
+    catchScore,
+  ]);
+
   const rawOverall =
-    battingScore * 0.25 +
-    strikeScore * 0.2 +
-    wicketScore * 0.2 +
-    economyScore * 0.15 +
-    boundaryScore * 0.12 +
-    catchScore * 0.08;
+    battingHyb * 0.25 +
+    strikeHyb * 0.2 +
+    wicketHyb * 0.2 +
+    economyHyb * 0.15 +
+    boundaryHyb * 0.12 +
+    catchHyb * 0.08;
 
   let rating = clamp(Math.round(rawOverall), 8, 92);
 
@@ -57,12 +68,12 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   else if (easyShare > 0.55 && raw.streak >= 10) role = "Wicketkeeper";
 
   const cardStats = [
-    { label: "Strike rate", abbr: "STR", value: strikeScore },
-    { label: "Batting avg", abbr: "AVG", value: battingScore },
-    { label: "Wickets", abbr: "WKT", value: wicketScore },
-    { label: "Economy", abbr: "ECO", value: economyScore },
-    { label: "Boundaries", abbr: "BND", value: boundaryScore },
-    { label: "Catches", abbr: "CAT", value: catchScore },
+    { label: "Strike rate", abbr: "STR", value: strikeHyb },
+    { label: "Batting avg", abbr: "AVG", value: battingHyb },
+    { label: "Wickets", abbr: "WKT", value: wicketHyb },
+    { label: "Economy", abbr: "ECO", value: economyHyb },
+    { label: "Boundaries", abbr: "BND", value: boundaryHyb },
+    { label: "Catches", abbr: "CAT", value: catchHyb },
   ];
 
   const scoutingMetrics = [
@@ -70,35 +81,35 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
       label: "Problems solved",
       raw: raw.totalSolved,
       suffix: "solved all-time",
-      score: strikeScore,
-      explanation: "Total problems cracked — feeds Strike Rate.",
+      score: strikeHyb,
+      explanation: "Total problems cracked, weighed against your other five stats — feeds Strike Rate.",
     },
     {
       label: "Hard problems",
       raw: raw.hardSolved,
       suffix: "hard, all-time",
-      score: wicketScore,
-      explanation: "The toughest dismissals on the sheet — feeds Wickets.",
+      score: wicketHyb,
+      explanation: "The toughest dismissals on the sheet, weighed against your other five stats — feeds Wickets.",
     },
     {
       label: "Acceptance rate",
       raw: Math.round(acceptanceRate),
       suffix: "% accepted",
-      score: economyScore,
+      score: economyHyb,
       explanation: "Clean submissions vs. wasted attempts — feeds Economy.",
     },
     {
       label: "Medium problems",
       raw: raw.mediumSolved,
       suffix: "medium, all-time",
-      score: boundaryScore,
+      score: boundaryHyb,
       explanation: "Solid, reliable returns — feeds Boundaries.",
     },
     {
       label: "Contests entered",
       raw: raw.contestsAttended,
       suffix: "rated contests",
-      score: catchScore,
+      score: catchHyb,
       explanation: "Showing up when it's live, plus overall volume solved — feeds Catches, so grinders who skip contests aren't zeroed out.",
     },
     {
@@ -118,10 +129,10 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   ];
 
   const attributes = [
-    { label: "Consistency", stars: toStars(battingScore) },
-    { label: "Power hitting", stars: toStars(boundaryScore) },
-    { label: "Control", stars: toStars(economyScore) },
-    { label: "Support play", stars: toStars(catchScore) },
+    { label: "Consistency", stars: toStars(battingHyb) },
+    { label: "Power hitting", stars: toStars(boundaryHyb) },
+    { label: "Control", stars: toStars(economyHyb) },
+    { label: "Support play", stars: toStars(catchHyb) },
     { label: "Longevity", stars: toStars(curve(activeYears, 4)) },
   ];
 
@@ -136,12 +147,12 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
   if (playstyles.length === 0) playstyles.push("Rising Talent");
 
   const scored: [string, number][] = [
-    ["Consistent run-scorer", battingScore],
-    ["Explosive striker", strikeScore],
-    ["Wicket-taking menace", wicketScore],
-    ["Economical operator", economyScore],
-    ["Big-hitting star", boundaryScore],
-    ["Safe pair of hands", catchScore],
+    ["Consistent run-scorer", battingHyb],
+    ["Explosive striker", strikeHyb],
+    ["Wicket-taking menace", wicketHyb],
+    ["Economical operator", economyHyb],
+    ["Big-hitting star", boundaryHyb],
+    ["Safe pair of hands", catchHyb],
   ];
   scored.sort((a, b) => b[1] - a[1]);
   const signatureStat = scored[0][1] > 0 ? scored[0][0] : "Still finding their game";

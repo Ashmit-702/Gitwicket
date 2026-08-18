@@ -60,6 +60,32 @@ export function curve(x: number, midpoint: number): number {
 
 export const toStars = (score: number) => clamp(Math.round(score / 20), 1, 5);
 
+// Gitfut's own explanation of their system: each stat is "weighed against the rest of
+// your profile" so your strongest signal gets pushed up and your weakest pulled down —
+// a self-relative "shape" rather than an absolute benchmark. That's mathematically why
+// their ratings cluster in a comfortable 40-70 range almost regardless of real activity:
+// six numbers compared only to their own mean will center on a middle value by
+// construction. Going fully self-relative has a real failure mode though — a genuinely
+// empty account and a genuinely balanced one can produce a similar "shape", since the
+// math only sees relative standing, not absolute size. This blends the two: mostly
+// self-relative (so a real profile gets read as a shape, not just graded down), with a
+// smaller absolute component kept in so an empty account can't fully hide behind a
+// flattering shape.
+const SHAPE_CENTER = 60;
+const SHAPE_SPREAD = 15;
+const RELATIVE_WEIGHT = 0.7;
+
+export function shapeScores(scores: number[]): number[] {
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const variance = scores.reduce((sum, v) => sum + (v - mean) ** 2, 0) / scores.length;
+  const std = Math.sqrt(variance);
+  return scores.map((v) => {
+    const z = std > 0 ? (v - mean) / std : 0;
+    const relative = clamp(Math.round(SHAPE_CENTER + z * SHAPE_SPREAD), 1, 88);
+    return clamp(Math.round(RELATIVE_WEIGHT * relative + (1 - RELATIVE_WEIGHT) * v), 1, 88);
+  });
+}
+
 export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   const accountAgeYears = Math.max(
     0.1,
@@ -106,13 +132,24 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   const boundaryScore = softened(curve(boundaries, 85));
   const catchScore = softened(curve(catches, 22));
 
+  // Shape the six absolute scores against each other (see shapeScores doc comment) —
+  // this is what actually appears on the card face and drives the overall rating.
+  const [battingHyb, strikeHyb, wicketHyb, economyHyb, boundaryHyb, catchHyb] = shapeScores([
+    battingScore,
+    strikeScore,
+    wicketScore,
+    economyScore,
+    boundaryScore,
+    catchScore,
+  ]);
+
   const rawOverall =
-    battingScore * 0.25 +
-    strikeScore * 0.2 +
-    wicketScore * 0.2 +
-    economyScore * 0.15 +
-    boundaryScore * 0.12 +
-    catchScore * 0.08;
+    battingHyb * 0.25 +
+    strikeHyb * 0.2 +
+    wicketHyb * 0.2 +
+    economyHyb * 0.15 +
+    boundaryHyb * 0.12 +
+    catchHyb * 0.08;
 
   // no artificial floor — a near-empty profile should honestly show a near-empty rating,
   // rather than every account landing around the same "35" regardless of real activity.
@@ -134,9 +171,9 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   // Role is based on which of three skill groups is strongest, not on one stat needing
   // to totally dominate another — the old thresholds required that kind of near-total
   // dominance, which almost never happened, so nearly everyone defaulted to Batsman.
-  const battingSkill = (battingScore + strikeScore + boundaryScore) / 3;
-  const bowlingSkill = (wicketScore + economyScore) / 2;
-  const fieldingSkill = catchScore;
+  const battingSkill = (battingHyb + strikeHyb + boundaryHyb) / 3;
+  const bowlingSkill = (wicketHyb + economyHyb) / 2;
+  const fieldingSkill = catchHyb;
 
   let role: Role = "Batsman"; // default: commit/output-driven, the common case
   if (fieldingSkill >= 55 && fieldingSkill >= bowlingSkill) role = "Wicketkeeper"; // strong support play (reviews + tidy issues)
@@ -144,12 +181,12 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   else if (battingSkill >= 45 && bowlingSkill >= 40) role = "All-rounder"; // both fronts solidly covered
 
   const cardStats: CardStat[] = [
-    { label: "Strike rate", abbr: "STR", value: strikeScore },
-    { label: "Batting avg", abbr: "AVG", value: battingScore },
-    { label: "Wickets", abbr: "WKT", value: wicketScore },
-    { label: "Economy", abbr: "ECO", value: economyScore },
-    { label: "Boundaries", abbr: "BND", value: boundaryScore },
-    { label: "Catches", abbr: "CAT", value: catchScore },
+    { label: "Strike rate", abbr: "STR", value: strikeHyb },
+    { label: "Batting avg", abbr: "AVG", value: battingHyb },
+    { label: "Wickets", abbr: "WKT", value: wicketHyb },
+    { label: "Economy", abbr: "ECO", value: economyHyb },
+    { label: "Boundaries", abbr: "BND", value: boundaryHyb },
+    { label: "Catches", abbr: "CAT", value: catchHyb },
   ];
 
   const scoutingMetrics: ScoutingMetric[] = [
@@ -157,15 +194,15 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
       label: "Commits",
       raw: raw.commits,
       suffix: "in the last year",
-      score: strikeScore,
-      explanation: "Recent commit volume — feeds Strike Rate.",
+      score: strikeHyb,
+      explanation: "Recent commit volume, weighed against your other five stats — feeds Strike Rate.",
     },
     {
       label: "Stars earned",
       raw: raw.stars,
       suffix: "across owned repos",
-      score: boundaryScore,
-      explanation: "Total stars on your non-fork repos — feeds Boundaries.",
+      score: boundaryHyb,
+      explanation: "Total stars on your non-fork repos, weighed against your other five stats — feeds Boundaries.",
     },
     {
       label: "Followers",
@@ -185,8 +222,8 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
       label: "Code reviews",
       raw: raw.reviews,
       suffix: "given this year",
-      score: catchScore,
-      explanation: "Reviews given to others, plus issues you've closed — feeds Catches.",
+      score: catchHyb,
+      explanation: "Reviews given to others, plus issues you've closed, weighed against your other five stats — feeds Catches.",
     },
     {
       label: "Repos shipped",
@@ -212,10 +249,10 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   ];
 
   const attributes: Attribute[] = [
-    { label: "Consistency", stars: toStars(battingScore) },
-    { label: "Power hitting", stars: toStars(boundaryScore) },
-    { label: "Control", stars: toStars(economyScore) },
-    { label: "Support play", stars: toStars(catchScore) },
+    { label: "Consistency", stars: toStars(battingHyb) },
+    { label: "Power hitting", stars: toStars(boundaryHyb) },
+    { label: "Control", stars: toStars(economyHyb) },
+    { label: "Support play", stars: toStars(catchHyb) },
     { label: "Longevity", stars: toStars(curve(activeYears, 6)) },
   ];
 
@@ -230,12 +267,12 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   if (playstyles.length === 0) playstyles.push("Rising Talent");
 
   const scored: [string, number][] = [
-    ["Consistent run-scorer", battingScore],
-    ["Explosive striker", strikeScore],
-    ["Wicket-taking menace", wicketScore],
-    ["Economical operator", economyScore],
-    ["Big-hitting star", boundaryScore],
-    ["Safe pair of hands", catchScore],
+    ["Consistent run-scorer", battingHyb],
+    ["Explosive striker", strikeHyb],
+    ["Wicket-taking menace", wicketHyb],
+    ["Economical operator", economyHyb],
+    ["Big-hitting star", boundaryHyb],
+    ["Safe pair of hands", catchHyb],
   ];
   scored.sort((a, b) => b[1] - a[1]);
   const signatureStat = scored[0][1] > 0 ? scored[0][0] : "Still finding their game";

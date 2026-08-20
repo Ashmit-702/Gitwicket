@@ -4,6 +4,7 @@ import { getCard } from "@/lib/getCard";
 import CricketCard from "@/components/CricketCard";
 import AttributesPanel from "@/components/AttributesPanel";
 import ScoutingMetrics from "@/components/ScoutingMetrics";
+import DimensionsPanel from "@/components/DimensionsPanel";
 import DistributionChart from "@/components/DistributionChart";
 import ShareButton from "@/components/ShareButton";
 import CountryPicker from "@/components/CountryPicker";
@@ -58,6 +59,12 @@ export default async function UserCardPage({ params, searchParams }: Props) {
         <p className="mt-1 font-body text-sm text-chalk/60">
           {card.tier} tier {card.role} · @{card.login} · {card.signatureStat}
         </p>
+        {typeof card.form === "number" && (
+          <p className="mt-1 font-mono text-xs text-chalk/40">
+            OVERALL {card.rating} · FORM {card.form}{" "}
+            {card.formTrend === "up" ? "↑ hotter than your career average" : card.formTrend === "down" ? "↓ quieter than your career average" : "→ matching your career average"}
+          </p>
+        )}
         {card.tagline && (
           <p className="mt-2 font-body text-sm text-chalk/50">
             <span className="font-display text-xs font-bold uppercase tracking-widest text-bail">{card.taglineTag}</span>{" "}
@@ -85,6 +92,7 @@ export default async function UserCardPage({ params, searchParams }: Props) {
         </PageReveal>
 
         <PageReveal delay={0.15} className="order-3 space-y-6">
+          <DimensionsPanel card={card} />
           <ScoutingMetrics card={card} />
           <DistributionChart card={card} />
         </PageReveal>

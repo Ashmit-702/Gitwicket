@@ -1,4 +1,5 @@
 import type { RawGithubStats } from "./github";
+import { computeDimensions, computeForm, weightedOverall, applyStability, type Dimensions } from "./rating";
 
 export type Role = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
 export type Tier = "Bronze" | "Silver" | "Gold" | "Legend";
@@ -23,6 +24,13 @@ export interface Attribute {
   stars: number; // 1-5
 }
 
+export interface DimensionBreakdown {
+  label: string;
+  score: number; // 0-100
+  weight: number; // 0-1
+  note: string;
+}
+
 export interface CricketCardStats {
   login: string;
   name: string;
@@ -34,7 +42,10 @@ export interface CricketCardStats {
   taglineTag?: string;
   tagline?: string;
   tier: Tier;
-  rating: number; // out of 99 — shown big on the card, labeled "RATING" (never "OVR")
+  rating: number; // Overall — out of 99, absolute/population-calibrated, stability-updated
+  form?: number; // out of 99 — recency-weighted, separate from rating by construction
+  formTrend?: "up" | "down" | "flat";
+  dimensions?: DimensionBreakdown[]; // explainability — "why is my rating X"
   // literal, human-readable cricket numbers — used in the scouting panel and page copy,
   // NOT on the card face (the card face uses cardStats, which are uniformly 0-99)
   strikeRate: number;
@@ -60,17 +71,14 @@ export function curve(x: number, midpoint: number): number {
 
 export const toStars = (score: number) => clamp(Math.round(score / 20), 1, 5);
 
-// Gitfut's own explanation of their system: each stat is "weighed against the rest of
-// your profile" so your strongest signal gets pushed up and your weakest pulled down —
-// a self-relative "shape" rather than an absolute benchmark. That's mathematically why
-// their ratings cluster in a comfortable 40-70 range almost regardless of real activity:
-// six numbers compared only to their own mean will center on a middle value by
-// construction. Going fully self-relative has a real failure mode though — a genuinely
-// empty account and a genuinely balanced one can produce a similar "shape", since the
-// math only sees relative standing, not absolute size. This blends the two: mostly
-// self-relative (so a real profile gets read as a shape, not just graded down), with a
-// smaller absolute component kept in so an empty account can't fully hide behind a
-// flattering shape.
+// Relative "shape" — deliberately scoped to Attributes ONLY. Earlier versions let this
+// feed the overall rating directly, which meant a balanced-but-modest profile and a
+// balanced-and-strong profile could land on a similar number just for having a similar
+// *shape* — that's the exact failure mode a real rating system can't have. Overall now
+// comes from lib/rating.ts's absolute, population-weighted dimension engine instead.
+// This stays for the 6-stat card face and star attributes, where "what are you
+// relatively strongest at" is a legitimate, fun thing to show — it just no longer
+// decides how good the card holder is.
 const SHAPE_CENTER = 60;
 const SHAPE_SPREAD = 15;
 const RELATIVE_WEIGHT = 0.7;
@@ -86,7 +94,17 @@ export function shapeScores(scores: number[]): number[] {
   });
 }
 
-export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
+const DIMENSION_META: Record<keyof Dimensions, { label: string; note: string }> = {
+  engineeringActivity: { label: "Engineering Activity", note: "Commit volume over the last year, with diminishing returns." },
+  collaboration: { label: "Collaboration", note: "PRs merged into repos you don't own, plus reviews given." },
+  consistency: { label: "Consistency", note: "Share of the year's weeks with any real activity." },
+  projectDepth: { label: "Project Depth", note: "Weak proxy signals only (license, description, repo size) — kept low-weight on purpose." },
+  impact: { label: "Impact", note: "Stars, forks, followers — capped, heavily diminishing." },
+  breadth: { label: "Breadth", note: "Distinct languages used, with a hard diminishing curve." },
+  community: { label: "Community", note: "Issues closed and external contributions." },
+};
+
+export function mapToCricketStats(raw: RawGithubStats, previousRating: number | null = null): CricketCardStats {
   const accountAgeYears = Math.max(
     0.1,
     (Date.now() - new Date(raw.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365)
@@ -100,7 +118,7 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
     0,
     99
   );
-  const wickets = raw.pullRequestsMerged + raw.reviews + Math.round(raw.repoCount * 1.2);
+  const wickets = raw.pullRequestsMergedToOthers * 2 + raw.reviews + Math.round(raw.repoCount * 0.6);
   const economy = clamp(
     Number((10 - Math.log10(raw.stars + 1) * 1.8 - Math.log10(raw.followers + 1) * 0.6).toFixed(1)),
     2,
@@ -109,76 +127,67 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
   const boundaries = raw.stars;
   const catches = raw.reviews + Math.round(raw.issuesClosed / 5);
 
-  // --- uniform 0-99 sub-scores — these are what actually appear on the card face ---
-  // Four of these (strike/economy/boundary/catch) mathematically hit exactly 0 whenever
-  // the underlying count is 0 — which is an extremely common, not-actually-worst-case
-  // scenario (no stars yet, no reviews given yet, etc). A small floor keeps a real but
-  // modest profile from reading identically to a genuinely empty/abandoned account.
-  // Kept deliberately small (not the ~1/3-of-scale it used to be) — a floor this size
-  // was quietly re-inflating every mid-tier account and undoing the "stricter than
-  // gitfut" positioning; softened(50) used to jump to 66, now it barely moves.
-  const SOFT_FLOOR = 12;
-  const BATTING_FLOOR = 8;
-  const softened = (score: number, floor = SOFT_FLOOR) => Math.round(floor + score * (1 - floor / 99));
-
-  const battingScore = softened(battingAverage, BATTING_FLOOR);
-  const strikeScore = softened(curve(strikeRate, 60));
-  // Widened from 26/35/13 — those midpoints meant any solidly-active maintainer (a few
-  // hundred merged PRs, a few hundred stars) already maxed these out, so a "strong"
-  // account and a genuine top-1% account scored identically. Widened just enough to
-  // give the top end real headroom without crushing the mid tier much.
-  const wicketScore = curve(wickets, 45);
-  const economyScore = softened(curve(10 - economy, 4));
-  const boundaryScore = softened(curve(boundaries, 85));
-  const catchScore = softened(curve(catches, 22));
-
-  // Shape the six absolute scores against each other (see shapeScores doc comment) —
-  // this is what actually appears on the card face and drives the overall rating.
-  const [battingHyb, strikeHyb, wicketHyb, economyHyb, boundaryHyb, catchHyb] = shapeScores([
-    battingScore,
-    strikeScore,
-    wicketScore,
-    economyScore,
-    boundaryScore,
-    catchScore,
-  ]);
-
-  const rawOverall =
-    battingHyb * 0.25 +
-    strikeHyb * 0.2 +
-    wicketHyb * 0.2 +
-    economyHyb * 0.15 +
-    boundaryHyb * 0.12 +
-    catchHyb * 0.08;
-
-  // no artificial floor — a near-empty profile should honestly show a near-empty rating,
-  // rather than every account landing around the same "35" regardless of real activity.
-  // Non-eligible accounts are hard-capped at 92 (can't look "Legend" without meeting the
-  // gate below); eligible accounts keep their real rawOverall instead of a flat +9 bump —
-  // the flat bump used to mean a barely-qualifying account and a genuinely elite one
-  // landed on the exact same 99, which is the opposite of "more legit rankings."
-  const preGateRating = clamp(Math.round(rawOverall), 8, 99);
-  const isLegendEligible =
-    activeYears >= 4 &&
-    accountAgeYears >= 4 &&
-    raw.followers >= 400 &&
-    raw.stars >= 800 &&
-    preGateRating >= 78;
-  const rating = isLegendEligible ? preGateRating : Math.min(preGateRating, 92);
+  // ============================================================================
+  // OVERALL — absolute, dimension-weighted, stability-updated. This is the one
+  // number that's supposed to mean roughly the same thing for any two users, and
+  // roughly the same thing for the same user six months apart. See lib/rating.ts
+  // for the full reasoning on diminishing returns, weights, and the stability
+  // mechanism (which replaces a confidence-pull-to-average approach: a genuinely
+  // strong new account shows its true value immediately, since there's nothing to
+  // blend against on the first-ever reading; only later readings get smoothed).
+  // ============================================================================
+  const dims = computeDimensions(raw);
+  const measuredOverall = weightedOverall(dims); // 0-100
+  const stabilized = applyStability(previousRating === null ? null : previousRating, measuredOverall);
+  const rating = clamp(Math.round(stabilized * 0.99), 0, 99); // display scale stays "out of 99"
 
   const tier: Tier = rating >= 90 ? "Legend" : rating >= 78 ? "Gold" : rating >= 55 ? "Silver" : "Bronze";
 
-  // Role is based on which of three skill groups is strongest, not on one stat needing
-  // to totally dominate another — the old thresholds required that kind of near-total
-  // dominance, which almost never happened, so nearly everyone defaulted to Batsman.
+  const formRaw = computeForm(raw); // 0-100, recency-weighted, independent of Overall
+  const form = clamp(Math.round(formRaw * 0.99), 0, 99);
+  const formTrend: "up" | "down" | "flat" = form > rating + 4 ? "up" : form < rating - 4 ? "down" : "flat";
+
+  const dimensions: DimensionBreakdown[] = (Object.keys(dims) as (keyof Dimensions)[]).map((key) => ({
+    label: DIMENSION_META[key].label,
+    score: dims[key],
+    weight: [0.25, 0.2, 0.15, 0.08, 0.12, 0.1, 0.1][
+      ["engineeringActivity", "collaboration", "consistency", "projectDepth", "impact", "breadth", "community"].indexOf(key)
+    ],
+    note: DIMENSION_META[key].note,
+  }));
+
+  // ============================================================================
+  // ATTRIBUTES / CARD FACE — six cricket-flavored slots, each fed by one (or a
+  // blend of two) of the seven dimensions above, then relatively shaped against
+  // each other. This is deliberately separate from Overall — it answers "where is
+  // this person relatively strongest," not "how good are they."
+  // ============================================================================
+  const strikeAbs = dims.engineeringActivity;
+  const battingAbs = Math.round(dims.engineeringActivity * 0.5 + dims.consistency * 0.5);
+  const wicketAbs = dims.collaboration;
+  const economyAbs = dims.projectDepth;
+  const boundaryAbs = dims.impact;
+  const catchAbs = dims.community;
+
+  const [battingHyb, strikeHyb, wicketHyb, economyHyb, boundaryHyb, catchHyb] = shapeScores([
+    battingAbs,
+    strikeAbs,
+    wicketAbs,
+    economyAbs,
+    boundaryAbs,
+    catchAbs,
+  ]);
+
+  // Role is derived from the attribute vector, not from Overall — a strong "shape"
+  // toward collaboration doesn't need a strong Overall to earn a Bowler tag.
   const battingSkill = (battingHyb + strikeHyb + boundaryHyb) / 3;
   const bowlingSkill = (wicketHyb + economyHyb) / 2;
   const fieldingSkill = catchHyb;
 
-  let role: Role = "Batsman"; // default: commit/output-driven, the common case
-  if (fieldingSkill >= 55 && fieldingSkill >= bowlingSkill) role = "Wicketkeeper"; // strong support play (reviews + tidy issues)
-  else if (bowlingSkill >= battingSkill && bowlingSkill >= 40) role = "Bowler"; // PR/review/repo output at least matches commit volume
-  else if (battingSkill >= 45 && bowlingSkill >= 40) role = "All-rounder"; // both fronts solidly covered
+  let role: Role = "Batsman";
+  if (fieldingSkill >= 55 && fieldingSkill >= bowlingSkill) role = "Wicketkeeper";
+  else if (bowlingSkill >= battingSkill && bowlingSkill >= 40) role = "Bowler";
+  else if (battingSkill >= 45 && bowlingSkill >= 40) role = "All-rounder";
 
   const cardStats: CardStat[] = [
     { label: "Strike rate", abbr: "STR", value: strikeHyb },
@@ -194,57 +203,57 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
       label: "Commits",
       raw: raw.commits,
       suffix: "in the last year",
-      score: strikeHyb,
-      explanation: "Recent commit volume, weighed against your other five stats — feeds Strike Rate.",
+      score: dims.engineeringActivity,
+      explanation: "Recent commit volume, with diminishing returns — feeds Engineering Activity and Strike Rate.",
     },
     {
       label: "Stars earned",
       raw: raw.stars,
       suffix: "across owned repos",
-      score: boundaryHyb,
-      explanation: "Total stars on your non-fork repos, weighed against your other five stats — feeds Boundaries.",
+      score: dims.impact,
+      explanation: "Stars, forks, and followers combined, heavily capped — feeds Impact and Boundaries.",
     },
     {
       label: "Followers",
       raw: raw.followers,
       suffix: "followers",
       score: curve(raw.followers, 180),
-      explanation: "Reach and influence — softens Economy alongside stars.",
+      explanation: "Part of Impact alongside stars — capped so popularity alone can't dominate.",
     },
     {
-      label: "Merged PRs",
-      raw: raw.pullRequestsMerged,
-      suffix: "merged all-time",
-      score: curve(raw.pullRequestsMerged, 40),
-      explanation: "Shipped work through a PR workflow — one of three things feeding Wickets, alongside reviews given and repos shipped solo.",
+      label: "PRs merged elsewhere",
+      raw: raw.pullRequestsMergedToOthers,
+      suffix: "into repos you don't own",
+      score: dims.collaboration,
+      explanation: "Real collaboration signal — merged PRs into other people's repos, plus reviews — feeds Wickets.",
     },
     {
       label: "Code reviews",
       raw: raw.reviews,
       suffix: "given this year",
-      score: catchHyb,
-      explanation: "Reviews given to others, plus issues you've closed, weighed against your other five stats — feeds Catches.",
+      score: dims.community,
+      explanation: "Reviews given plus issues closed — feeds Community and Catches.",
     },
     {
       label: "Repos shipped",
       raw: raw.repoCount,
       suffix: "owned, non-fork repos",
       score: curve(raw.repoCount, 15),
-      explanation: "Solo-built projects count too — feeds Wickets alongside PRs and reviews, so working alone doesn't zero this out.",
+      explanation: "Solo-built projects count too, but lightly — repo count alone is easy to game.",
     },
     {
       label: "Issues closed",
       raw: raw.issuesClosed,
       suffix: "closed all-time",
       score: curve(raw.issuesClosed, 40),
-      explanation: "Maintenance and triage — supports role detection.",
+      explanation: "Maintenance and triage — supports Community and role detection.",
     },
     {
       label: "Active years",
       raw: activeYears,
       suffix: activeYears === 1 ? "year with activity" : "years with activity",
       score: curve(activeYears, 6),
-      explanation: "Distinct years you've actually contributed — powers Batting Average and the Legend gate.",
+      explanation: "Distinct years you've actually contributed — powers Consistency and long-term tenure.",
     },
   ];
 
@@ -313,6 +322,9 @@ export function mapToCricketStats(raw: RawGithubStats): CricketCardStats {
     tagline,
     tier,
     rating,
+    form,
+    formTrend,
+    dimensions,
     strikeRate,
     battingAverage,
     wickets,

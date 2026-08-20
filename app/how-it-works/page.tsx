@@ -3,27 +3,27 @@ export const dynamic = "force-static";
 const ROWS = [
   {
     stat: "Strike rate (STR)",
-    copy: "Commit pace — recent commit contributions (last ~12 months), scaled to a daily rate.",
+    copy: "Commit pace — your Engineering Activity dimension: commits over the last year, with diminishing returns so a huge commit count doesn't linearly outscore a solid one.",
   },
   {
     stat: "Batting average (AVG)",
-    copy: "Commits + 3x merged PRs + 1.5x reviews, averaged across your active years — years you actually had contributions, not just years since you signed up.",
+    copy: "A blend of Engineering Activity and Consistency — sustained volume that's also spread across the year, not just a single hot streak.",
   },
   {
     stat: "Wickets (WKT)",
-    copy: "Merged PRs (all-time) + reviews given + a repo-count bonus. Weighted heavily and don't come cheap — a handful of merged PRs won't max this out.",
+    copy: "Your Collaboration dimension: PRs merged into repos you don't own, plus reviews given, plus a smaller credit for solid solo-shipped repos. Zero external PRs doesn't zero this out — it just means you're scored mostly on the solo-building baseline until you've collaborated elsewhere.",
   },
   {
     stat: "Economy (ECO)",
-    copy: "Reach and impact — stars and followers pull this down (in a good way; lower economy is better, same as bowling). Zero stars and zero followers means a wide-open economy.",
+    copy: "Your Project Depth dimension — a deliberately weak, low-weight proxy (license, description, repo size). It's a minor signal on purpose: GitHub's public API can't actually measure code quality.",
   },
   {
     stat: "Boundaries (BND)",
-    copy: "Total stars earned across your owned, non-fork repos.",
+    copy: "Your Impact dimension: stars, forks, and followers combined, with heavy diminishing returns so popularity alone can't dominate the card.",
   },
   {
     stat: "Catches (CAT)",
-    copy: "Reviews given, plus closed issues — so maintainers and reviewers get credit, not just people shipping their own code.",
+    copy: "Your Community dimension: issues closed and external contributions — so maintainers and reviewers get credit, not just people shipping their own code.",
   },
 ];
 
@@ -61,31 +61,34 @@ export default function HowItWorksGithubPage() {
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Why your card has a shape</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            Before the six stats above get weighted into your overall rating, each one is read against
-            the other five on <em>your own</em> card — so your strongest signal gets pushed up and your
-            weakest gets pulled down, and the shape of your card is relative to you, not a fixed bar
-            everyone&apos;s measured against. That&apos;s deliberate: two accounts with wildly different
-            raw activity can still both read as &quot;well-rounded&quot; if their six numbers are close to
-            each other, and a genuinely lopsided profile (huge on commits, nothing anywhere else) will
-            show that lean clearly.
+            The six stats above are read against each other on <em>your own</em> card — so your relatively
+            strongest signal gets pushed up and your relatively weakest gets pulled down, showing where
+            you lean as a player. That&apos;s deliberately just for the card face and the star ratings —
+            it answers &quot;what are you relatively best at,&quot; not &quot;how good are you overall.&quot;
           </p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            It&apos;s not the whole story though — each stat keeps a smaller dose of its raw, absolute
-            value mixed in underneath the shape (30%, specifically). That&apos;s what stops a genuinely
-            empty account from reading as generously as a real, balanced one just because it has &quot;no
-            weak points&quot; on paper. Mostly shape, a little grounding.
+            Your Overall rating is calculated separately, from your absolute, real-world numbers — never
+            from this relative shape. That split matters: a strong, active profile shouldn&apos;t be able
+            to out-rate a genuinely stronger one just by having a more &quot;balanced&quot; looking card.
           </p>
         </div>
 
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            A weighted blend of all six stats, ranging from 8 to 92. A small floor keeps a real but modest
-            account (a few stars, a handful of reviews) from reading identically to a genuinely empty one —
-            but it&apos;s deliberately small, so it doesn&apos;t inflate the overall number. The 90s
-            (&quot;Legend&quot; tier) are a separate gate: at least 4 active years, a 4-year-old account,
-            400+ followers, and 800+ stars. Volume alone doesn&apos;t get you there without the reach to
-            back it up.
+            Built from seven weighted dimensions — Engineering Activity, Collaboration, Consistency,
+            Project Depth, Impact, Breadth, and Community — each scored 0-100 against realistic, diminishing-returns
+            curves, not against other users. Engineering Activity (commit volume) is the single strongest
+            factor. Collaboration rewards merged PRs into other people&apos;s repos most, but also gives
+            real credit for shipping your own repos consistently, so having zero external PRs doesn&apos;t
+            collapse your score — it&apos;s the normal state for most solo builders and students. Impact
+            (stars/forks/followers) is capped hard so popularity alone can&apos;t dominate a card. You can
+            see your own breakdown, dimension by dimension, on your profile page.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Once you have a rating on file, a new measurement blends in gradually rather than jumping
+            straight to whatever we measure that day — so a single noisy read can&apos;t whipsaw your
+            number, but a real, sustained change shows up clearly within a couple of regenerations.
           </p>
         </div>
 

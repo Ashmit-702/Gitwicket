@@ -25,11 +25,37 @@ export function saturate(x: number, k: number): number {
 // Project Depth is intentionally low-weight: repo metadata (license, description,
 // size) are weak, gameable proxies, not a real measurement of engineering quality.
 // GitHub's public API cannot observe actual code quality, so we don't pretend to.
+//
+// CALIBRATION NOTE (v5): the v4 weights + curves systematically undervalued the
+// population this product is actually for — students and solo builders with no
+// external merged PRs. Two structural bugs drove real users from ~61/62 down to
+// ~28/30 under v4:
+//
+//   1. Collaboration (20% of the total) was 75% driven by external-PR/review
+//      volume and only 25% by a "solo building" fallback capped at repoCount=12.
+//      Someone with zero external PRs — the overwhelming common case — could
+//      score at most 25/100 on this dimension (0.25 * saturate(repoCount,12)
+//      maxes at 25), which alone drags ~5 points off a 100-point overall before
+//      any other dimension is considered. That's "a hard zero, with extra
+//      steps," not the generous baseline the dimension's own comment claimed.
+//   2. activeWeeksRatio() blended in a *days*-active ratio at 60% weight. Days
+//      ratio is brutal for any real developer: someone who commits most weeks
+//      but only 2-3 days within each active week (i.e. almost everyone) has
+//      their consistency score crushed by the 60%-weighted daily-density term,
+//      even though "active most weeks" is exactly what sustained-but-normal
+//      activity looks like.
+//
+//   Both dimensions are real signals and stay — external collaboration and
+//   genuine day-to-day consistency SHOULD matter — but neither should be able
+//   to structurally cap out a normal, non-elite profile in the 20s/30s. v5
+//   keeps the same seven dimensions and the same "absolute evidence, not
+//   relative shape" philosophy, but recalibrates the curves and weights so a
+//   competent, active-but-ordinary developer lands near 50, not near 30.
 
 export interface Dimensions {
   engineeringActivity: number; // commits, long-term weighted — the primary signal
-  collaboration: number; // PRs merged into repos you don't own, + reviews given
-  consistency: number; // active-weeks ratio over the year — sustained > bursty
+  collaboration: number; // PRs merged into repos you don't own, + reviews given, + solo-shipping baseline
+  consistency: number; // weeks-active ratio, softened by a months-active floor — sustained > bursty
   projectDepth: number; // WEAK PROXY: license/description/size. Low weight, on purpose.
   impact: number; // stars/forks/followers — capped, heavily diminishing
   breadth: number; // distinct languages — diminishing hard past ~4-5
@@ -37,13 +63,13 @@ export interface Dimensions {
 }
 
 export const DIMENSION_WEIGHTS: Record<keyof Dimensions, number> = {
-  engineeringActivity: 0.25,
-  collaboration: 0.2,
-  consistency: 0.15,
-  projectDepth: 0.08, // deliberately low — see Dimensions doc comment
-  impact: 0.12,
-  breadth: 0.1,
-  community: 0.1,
+  engineeringActivity: 0.3, // raised from 0.25 — this should be the single strongest signal
+  collaboration: 0.15, // lowered from 0.2 — real signal, but shouldn't structurally cap solo builders
+  consistency: 0.14, // lowered from 0.15, formula also softened — see activeWeeksRatio
+  projectDepth: 0.07, // deliberately low — see Dimensions doc comment
+  impact: 0.13,
+  breadth: 0.08, // lowered from 0.1 — supportive signal only, per spec
+  community: 0.13, // raised from 0.1 — picks up slack from collaboration without the zero-PR cliff
 };
 
 function sumDailyRange(daily: { date: string; count: number }[], days: number): number {
@@ -51,47 +77,61 @@ function sumDailyRange(daily: { date: string; count: number }[], days: number): 
   return daily.filter((d) => new Date(d.date).getTime() >= cutoff).reduce((sum, d) => sum + d.count, 0);
 }
 
+/**
+ * Weeks-active ratio, softened by a months-active floor instead of a raw days-active
+ * ratio. Months-active is much more forgiving of realistic, non-daily commit patterns
+ * (nobody codes literally every day) while still telling bursty apart from sustained:
+ * someone who worked hard for one 6-week sprint and vanished still reads as low
+ * (few weeks, few months active), while someone who commits most weeks but not every
+ * single day of those weeks is no longer punished for it.
+ */
 function activeWeeksRatio(daily: { date: string; count: number }[], windowDays = 365): number {
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const activeWeeks = new Set<string>();
   const totalWeeks = new Set<string>();
-  const activeDays = new Set<string>();
-  const totalDays = new Set<string>();
+  const activeMonths = new Set<string>();
+  const totalMonths = new Set<string>();
   for (const d of daily) {
     const time = new Date(d.date).getTime();
     if (time < cutoff) continue;
     const weekKey = Math.floor(time / (7 * 24 * 60 * 60 * 1000));
     totalWeeks.add(String(weekKey));
-    totalDays.add(d.date);
+    const monthKey = d.date.slice(0, 7); // YYYY-MM
+    totalMonths.add(monthKey);
     if (d.count > 0) {
       activeWeeks.add(String(weekKey));
-      activeDays.add(d.date);
+      activeMonths.add(monthKey);
     }
   }
   if (totalWeeks.size === 0) return 0;
   const weeksRatio = activeWeeks.size / totalWeeks.size;
-  const daysRatio = totalDays.size > 0 ? activeDays.size / totalDays.size : 0;
-  // Blended, not just weeks — one commit/week alone used to max this at 100% (cheap to
-  // game). Days ratio is much harder to cheaply satisfy, so it pulls the number down
-  // hard unless activity is genuinely spread across most days, not just most weeks.
-  return weeksRatio * 0.4 + daysRatio * 0.6;
+  const monthsRatio = totalMonths.size > 0 ? activeMonths.size / totalMonths.size : 0;
+  // Weeks-active carries most of the weight (it's the real "did you show up"
+  // signal); months-active is a gentler secondary check that spread-out work
+  // beats one concentrated burst, without demanding near-daily activity.
+  return weeksRatio * 0.65 + monthsRatio * 0.35;
 }
 
 /** The long-term, absolute-evidence dimension set that feeds Overall. */
 export function computeDimensions(raw: RawGithubStats): Dimensions {
   const commits365 = sumDailyRange(raw.dailyContributions, 365);
 
-  const engineeringActivity = saturate(commits365, 300);
+  const engineeringActivity = saturate(commits365, 280);
 
-  // External collaboration is the strongest signal, but this dimension used to be a
-  // hard zero for anyone who hasn't yet contributed to someone else's repo — which is
-  // the overwhelming common case for students and solo builders, the exact population
-  // using this tool. A capped, secondary credit for shipping your own repos means
-  // "hasn't collaborated externally yet" reads as "still building," not "contributes
-  // nothing" — while keeping external collaboration worth 3x as much per dimension.
-  const externalCollab = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 40);
-  const soloBuilding = saturate(raw.repoCount, 12);
-  const collaboration = Math.round(externalCollab * 0.75 + soloBuilding * 0.25);
+  // External collaboration is a strong signal, but must not be the only path to a
+  // decent collaboration score — the overwhelming majority of students and solo
+  // builders (this product's actual population) have zero PRs merged into repos
+  // they don't own. The solo-shipping baseline is tied to BOTH repo count and
+  // recent commit volume (not repo count alone, which is trivially gameable by
+  // creating empty repos) so it credits real, sustained solo output. External
+  // collaboration is still worth more per unit of evidence — a few real merged
+  // PRs elsewhere can outscore a much bigger pile of solo repos — but zero
+  // external PRs now reads as "still building," landing in the 30s-50s for an
+  // active solo developer, not capped at 25.
+  const externalCollab = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 30);
+  const soloBuildingRaw = raw.repoCount * 2 + commits365 / 50;
+  const soloBuilding = saturate(soloBuildingRaw, 14);
+  const collaboration = Math.round(externalCollab * 0.55 + soloBuilding * 0.45);
 
   const consistency = Math.round(activeWeeksRatio(raw.dailyContributions, 365) * 100);
 
@@ -105,9 +145,9 @@ export function computeDimensions(raw: RawGithubStats): Dimensions {
 
   const impact = saturate(raw.stars + raw.forks * 2 + raw.followers * 0.5, 150);
 
-  const breadth = saturate(raw.languageCount, 4);
+  const breadth = saturate(raw.languageCount, 5);
 
-  const community = saturate(raw.issuesClosed + raw.pullRequestsMergedToOthers * 2, 20);
+  const community = saturate(raw.issuesClosed + raw.pullRequestsMergedToOthers * 2, 18);
 
   return { engineeringActivity, collaboration, consistency, projectDepth, impact, breadth, community };
 }
@@ -155,4 +195,64 @@ const PERSISTENCE = 0.6;
 export function applyStability(previousRating: number | null, measuredRating: number): number {
   if (previousRating === null) return measuredRating;
   return clamp(Math.round(previousRating * PERSISTENCE + measuredRating * (1 - PERSISTENCE)), 0, 100);
+}
+
+// ============================================================================
+// DEBUG VISIBILITY (dev-only) — section 8 of the calibration brief.
+// ============================================================================
+// Not wired into any UI route. Import this from a throwaway script (see
+// scripts/calibrate-rating.ts and scripts/regression-two-users.ts) or a local
+// `node -e`/tsx one-liner during development to see exactly how a raw profile
+// turns into a displayed rating. Deliberately excludes anything secret (no
+// tokens, no Redis contents) — it only echoes back numbers already derived
+// from the public raw stats passed in.
+export interface RatingDebugTrace {
+  rawSummary: Pick<
+    RawGithubStats,
+    "commits" | "repoCount" | "pullRequestsMergedToOthers" | "reviews" | "stars" | "forks" | "followers" | "languageCount" | "issuesClosed"
+  >;
+  dimensions: Dimensions;
+  dimensionWeights: Record<keyof Dimensions, number>;
+  weightedContribution: Record<keyof Dimensions, number>; // dims[key] * weight, pre-rounding
+  measuredOverall: number; // weightedOverall(dims), before stability
+  previousRating: number | null;
+  stabilizedOverall: number; // after applyStability
+  finalDisplayRating: number; // after the *0.99 "out of 99" display scale
+  tier: "Bronze" | "Silver" | "Gold" | "Legend";
+}
+
+export function traceRating(raw: RawGithubStats, previousRating: number | null): RatingDebugTrace {
+  const dimensions = computeDimensions(raw);
+  const measuredOverall = weightedOverall(dimensions);
+  const stabilizedOverall = applyStability(previousRating, measuredOverall);
+  const finalDisplayRating = clamp(Math.round(stabilizedOverall * 0.99), 0, 99);
+  const tier: RatingDebugTrace["tier"] =
+    finalDisplayRating >= 90 ? "Legend" : finalDisplayRating >= 78 ? "Gold" : finalDisplayRating >= 55 ? "Silver" : "Bronze";
+
+  const weightedContribution = {} as Record<keyof Dimensions, number>;
+  for (const key of Object.keys(dimensions) as (keyof Dimensions)[]) {
+    weightedContribution[key] = Math.round(dimensions[key] * DIMENSION_WEIGHTS[key] * 100) / 100;
+  }
+
+  return {
+    rawSummary: {
+      commits: raw.commits,
+      repoCount: raw.repoCount,
+      pullRequestsMergedToOthers: raw.pullRequestsMergedToOthers,
+      reviews: raw.reviews,
+      stars: raw.stars,
+      forks: raw.forks,
+      followers: raw.followers,
+      languageCount: raw.languageCount,
+      issuesClosed: raw.issuesClosed,
+    },
+    dimensions,
+    dimensionWeights: DIMENSION_WEIGHTS,
+    weightedContribution,
+    measuredOverall,
+    previousRating,
+    stabilizedOverall,
+    finalDisplayRating,
+    tier,
+  };
 }

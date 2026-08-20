@@ -83,7 +83,15 @@ export function computeDimensions(raw: RawGithubStats): Dimensions {
 
   const engineeringActivity = saturate(commits365, 300);
 
-  const collaboration = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 40);
+  // External collaboration is the strongest signal, but this dimension used to be a
+  // hard zero for anyone who hasn't yet contributed to someone else's repo — which is
+  // the overwhelming common case for students and solo builders, the exact population
+  // using this tool. A capped, secondary credit for shipping your own repos means
+  // "hasn't collaborated externally yet" reads as "still building," not "contributes
+  // nothing" — while keeping external collaboration worth 3x as much per dimension.
+  const externalCollab = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 40);
+  const soloBuilding = saturate(raw.repoCount, 12);
+  const collaboration = Math.round(externalCollab * 0.75 + soloBuilding * 0.25);
 
   const consistency = Math.round(activeWeeksRatio(raw.dailyContributions, 365) * 100);
 

@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { getCard } from "@/lib/getCard";
 import CricketCard from "@/components/CricketCard";
 import PageReveal from "@/components/PageReveal";
+import CompareClash from "@/components/CompareClash";
+import CompareStatPanel from "@/components/CompareStatPanel";
+import CompareWinnerBanner from "@/components/CompareWinnerBanner";
+import WinnerGlow from "@/components/WinnerGlow";
 import type { CricketCardStats } from "@/lib/cricketStats";
 
 export const dynamic = "force-dynamic";
@@ -14,15 +18,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!a || !b) return { title: "Compare — GitWicket" };
   const title = `${a.name} (${a.rating}) vs ${b.name} (${b.rating}) | GitWicket`;
   return { title, description: `Head-to-head: ${a.login} vs ${b.login} on GitWicket.` };
-}
-
-function Winner({ av, bv }: { av: number; bv: number }) {
-  if (av === bv) return <span className="text-chalk/40">tied</span>;
-  return av > bv ? (
-    <span className="font-semibold text-bail">◀ {av}</span>
-  ) : (
-    <span className="font-semibold text-bail">{bv} ▶</span>
-  );
 }
 
 export default async function ComparePage({ params }: Props) {
@@ -55,42 +50,32 @@ export default async function ComparePage({ params }: Props) {
           @{cardA.login} <span className="text-chalk/30">vs</span> @{cardB.login}
         </h1>
         {overallWinner && (
-          <p className="mt-2 font-body text-sm text-chalk/60">
-            <span className="font-semibold text-bail">{overallWinner.name}</span> takes it, {overallWinner.rating} RTG to{" "}
-            {overallWinner === cardA ? cardB.rating : cardA.rating}.
-          </p>
+          <CompareWinnerBanner
+            name={overallWinner.name}
+            winnerRating={overallWinner.rating}
+            loserRating={overallWinner === cardA ? cardB.rating : cardA.rating}
+          />
         )}
       </PageReveal>
 
-      <div className="relative z-10 mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center gap-10 lg:flex-row lg:items-start">
+      <div className="relative z-10 mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center gap-6 lg:flex-row lg:items-start lg:gap-4">
         <PageReveal delay={0} y={20} className="flex flex-col items-center">
-          <CricketCard card={cardA} celebrate={false} />
+          <WinnerGlow isWinner={overallWinner === cardA}>
+            <CricketCard card={cardA} celebrate={false} />
+          </WinnerGlow>
         </PageReveal>
 
-        <PageReveal delay={0.15} className="w-full max-w-sm lg:mt-10">
-          <div className="rounded-xl border border-chalk/10 bg-pitch/60 p-5">
-            <p className="mb-4 flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-widest text-leather">
-              <span className="h-px w-4 bg-leather" /> Stat for stat
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-chalk/10 pb-2">
-                <span className="font-body text-sm text-chalk/80">Overall rating</span>
-                <Winner av={cardA.rating} bv={cardB.rating} />
-              </div>
-              {cardA.cardStats.map((s, i) => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <span className="font-body text-sm text-chalk/70">{s.label}</span>
-                  <Winner av={s.value} bv={cardB.cardStats[i].value} />
-                </div>
-              ))}
-            </div>
-          </div>
+        <PageReveal delay={0.15} className="w-full max-w-sm">
+          <CompareStatPanel cardA={cardA} cardB={cardB} />
         </PageReveal>
 
         <PageReveal delay={0.3} y={20} className="flex flex-col items-center">
-          <CricketCard card={cardB} celebrate={false} />
+          <WinnerGlow isWinner={overallWinner === cardB}>
+            <CricketCard card={cardB} celebrate={false} />
+          </WinnerGlow>
         </PageReveal>
       </div>
     </main>
   );
 }
+

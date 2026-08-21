@@ -7,9 +7,17 @@ import type { CricketCardStats } from "@/lib/cricketStats";
 // calibrated separately per platform since GitHub and LeetCode ratings have different
 // natural spreads (LeetCode's is wider: a lot of casual solvers pull the mean down, with a
 // long climb to the Hard-problem-heavy Legend tier).
+//
+// GitHub's mean is set BELOW the "competent" band (45-59), not centered on it: most public
+// GitHub accounts are dormant, abandoned, or genuinely early — a single course project, a
+// forked starter repo, an account touched twice in 2019. A real, actively-maintained profile
+// clears that bar quickly. (Previously this was mean=52 — which happened to be exactly the
+// v6 calibration curve's midpoint control point, so any "competent" 52-rated card landed at
+// *precisely* the 50th percentile by coincidence, no matter how solid the underlying evidence
+// was. That made a genuinely decent score read as "perfectly average," which undersold it.)
 const BUCKETS = 20; // 0-99 split into 20 buckets of ~5 points each
 const DIST_BY_PLATFORM = {
-  github: { mean: 52, std: 11 },
+  github: { mean: 40, std: 18 },
   leetcode: { mean: 50, std: 12 },
 };
 const ACCENT_BY_PLATFORM = {

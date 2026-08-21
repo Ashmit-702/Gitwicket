@@ -1,5 +1,5 @@
 import type { RawGithubStats } from "./github";
-import { computeDimensions, computeForm, weightedOverall, applyStability, type Dimensions } from "./rating";
+import { computeDimensions, computeForm, weightedOverall, applyStability, DIMENSION_WEIGHTS, type Dimensions } from "./rating";
 
 export type Role = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
 export type Tier = "Bronze" | "Silver" | "Gold" | "Legend";
@@ -96,12 +96,12 @@ export function shapeScores(scores: number[]): number[] {
 
 const DIMENSION_META: Record<keyof Dimensions, { label: string; note: string }> = {
   engineeringActivity: { label: "Engineering Activity", note: "Commit volume over the last year, with diminishing returns." },
-  collaboration: { label: "Collaboration", note: "PRs merged into repos you don't own, plus reviews given." },
-  consistency: { label: "Consistency", note: "Share of the year's weeks with any real activity." },
-  projectDepth: { label: "Project Depth", note: "Weak proxy signals only (license, description, repo size) — kept low-weight on purpose." },
+  projectStrength: { label: "Project Strength", note: "Owned, non-fork repos — count and tidiness (license/description/size). Real backbone evidence, not just popularity." },
+  consistency: { label: "Consistency", note: "Weeks active across the year, blended with your best 3-month stretch — a quiet season doesn't erase a strong one." },
+  collaboration: { label: "Collaboration", note: "PRs merged into repos you don't own, plus reviews given. No external PRs starts you at a NEUTRAL baseline, not a penalty — it just means no evidence yet." },
   impact: { label: "Impact", note: "Stars, forks, followers — capped, heavily diminishing." },
   breadth: { label: "Breadth", note: "Distinct languages used, with a hard diminishing curve." },
-  community: { label: "Community", note: "Issues closed and external contributions." },
+  community: { label: "Community", note: "Issues closed and external contributions. Also a NEUTRAL baseline — optional evidence, not a requirement." },
 };
 
 export function mapToCricketStats(raw: RawGithubStats, previousRating: number | null = null): CricketCardStats {
@@ -150,9 +150,7 @@ export function mapToCricketStats(raw: RawGithubStats, previousRating: number | 
   const dimensions: DimensionBreakdown[] = (Object.keys(dims) as (keyof Dimensions)[]).map((key) => ({
     label: DIMENSION_META[key].label,
     score: dims[key],
-    weight: [0.25, 0.2, 0.15, 0.08, 0.12, 0.1, 0.1][
-      ["engineeringActivity", "collaboration", "consistency", "projectDepth", "impact", "breadth", "community"].indexOf(key)
-    ],
+    weight: DIMENSION_WEIGHTS[key], // single source of truth — see lib/rating.ts, no more hand-duplicated array to drift out of sync
     note: DIMENSION_META[key].note,
   }));
 
@@ -165,7 +163,7 @@ export function mapToCricketStats(raw: RawGithubStats, previousRating: number | 
   const strikeAbs = dims.engineeringActivity;
   const battingAbs = Math.round(dims.engineeringActivity * 0.5 + dims.consistency * 0.5);
   const wicketAbs = dims.collaboration;
-  const economyAbs = dims.projectDepth;
+  const economyAbs = dims.projectStrength;
   const boundaryAbs = dims.impact;
   const catchAbs = dims.community;
 

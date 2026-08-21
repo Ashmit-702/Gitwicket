@@ -1,107 +1,116 @@
 /**
- * Regression check for the reported 61/62 -> 30/28 drop (brief section 7).
+ * Regression check for the reported 37/33 plateau (v6 brief, "THE TWO REAL
+ * REGRESSION USERS").
  *
- * IMPORTANT CAVEAT: this repo snapshot has no GITHUB_TOKEN configured in this
- * environment and no git history, so the two real usernames' actual raw GitHub
- * metrics cannot be fetched here, and their pre-regression ratings are not
- * hardcoded (per the brief's explicit instruction not to hardcode old ratings).
- * Instead, this script reconstructs a REPRESENTATIVE profile shape consistent
- * with "scored ~61/62 under the old model" — a solid, active, mostly-solo
- * developer with no/minimal external merged PRs, which is exactly the profile
- * shape the v4 audit (see lib/rating.ts comments) identified as the systematically
- * undervalued population — and runs it through both the OLD (v4) and NEW (v5)
- * dimension math side by side.
+ * CAVEAT (same as before): this environment has no GITHUB_TOKEN/git history,
+ * so the two real usernames' actual raw metrics can't be fetched here. This
+ * reconstructs a REPRESENTATIVE profile shape consistent with "scored ~61/62
+ * under the original model, dropped to ~28/30 under v4, recovered only to
+ * ~33/37 under the v5 fix" and runs it through v5 math and the new v6
+ * pipeline side by side, to show the delta comes from the architecture change
+ * (neutral baselines + calibration curve), not from padding.
  *
- * To regression-test the ACTUAL two accounts once network/token access is
- * available: call fetchGithubStats(realUsername) from lib/github.ts, feed the
- * result into both computeDimensionsV4Reconstruction() below and the live
- * computeDimensions() in lib/rating.ts, and compare — the harness below is
- * built so that swap is a one-line change (replace the `persona(...)` raw
- * object with a real fetched RawGithubStats).
+ * To regression-test the ACTUAL accounts once network/token access is
+ * available: fetch real RawGithubStats and feed it into both
+ * computeDimensionsV5Reconstruction() and the live computeDimensions() in
+ * lib/rating.ts.
  *
- * Run with: npx tsx scripts/regression-two-users.ts
+ * Run with: npx tsx scripts/regression-two-users.ts (or: npm run test:rating:regression)
  */
-import { computeDimensions as computeDimensionsV5, weightedOverall, saturate } from "../lib/rating";
+import {
+  computeDimensions as computeDimensionsV6,
+  weightedRawScore,
+  applyCalibrationCurve,
+  saturate,
+  saturateFromFloor,
+} from "../lib/rating";
 import type { RawGithubStats } from "../lib/github";
 import type { Dimensions } from "../lib/rating";
 
 // ----------------------------------------------------------------------------
-// OLD (v4) dimension math, reconstructed verbatim from the pre-fix lib/rating.ts
-// for side-by-side comparison only. This is NOT imported/used anywhere in the
-// live app — it exists purely so this script can show old-vs-new on the same
-// input.
+// v5 dimension math, reconstructed verbatim from the last delivered version,
+// for side-by-side comparison only. Not imported/used anywhere in the live app.
 // ----------------------------------------------------------------------------
 
-function sumDailyRangeV4(daily: { date: string; count: number }[], days: number): number {
+function sumDailyRangeV5(daily: { date: string; count: number }[], days: number): number {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   return daily.filter((d) => new Date(d.date).getTime() >= cutoff).reduce((sum, d) => sum + d.count, 0);
 }
 
-function activeWeeksRatioV4(daily: { date: string; count: number }[], windowDays = 365): number {
+function activeWeeksRatioV5(daily: { date: string; count: number }[], windowDays = 365): number {
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const activeWeeks = new Set<string>();
   const totalWeeks = new Set<string>();
-  const activeDays = new Set<string>();
-  const totalDays = new Set<string>();
+  const activeMonths = new Set<string>();
+  const totalMonths = new Set<string>();
   for (const d of daily) {
     const time = new Date(d.date).getTime();
     if (time < cutoff) continue;
     const weekKey = Math.floor(time / (7 * 24 * 60 * 60 * 1000));
     totalWeeks.add(String(weekKey));
-    totalDays.add(d.date);
+    const monthKey = d.date.slice(0, 7);
+    totalMonths.add(monthKey);
     if (d.count > 0) {
       activeWeeks.add(String(weekKey));
-      activeDays.add(d.date);
+      activeMonths.add(monthKey);
     }
   }
   if (totalWeeks.size === 0) return 0;
   const weeksRatio = activeWeeks.size / totalWeeks.size;
-  const daysRatio = totalDays.size > 0 ? activeDays.size / totalDays.size : 0;
-  return weeksRatio * 0.4 + daysRatio * 0.6;
+  const monthsRatio = totalMonths.size > 0 ? activeMonths.size / totalMonths.size : 0;
+  return weeksRatio * 0.65 + monthsRatio * 0.35;
 }
 
-const DIMENSION_WEIGHTS_V4: Record<keyof Dimensions, number> = {
-  engineeringActivity: 0.25,
-  collaboration: 0.2,
-  consistency: 0.15,
-  projectDepth: 0.08,
-  impact: 0.12,
-  breadth: 0.1,
-  community: 0.1,
+type DimensionsV5 = {
+  engineeringActivity: number;
+  collaboration: number;
+  consistency: number;
+  projectDepth: number;
+  impact: number;
+  breadth: number;
+  community: number;
 };
 
-function computeDimensionsV4(raw: RawGithubStats): Dimensions {
-  const commits365 = sumDailyRangeV4(raw.dailyContributions, 365);
-  const engineeringActivity = saturate(commits365, 300);
-  const externalCollab = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 40);
-  const soloBuilding = saturate(raw.repoCount, 12);
-  const collaboration = Math.round(externalCollab * 0.75 + soloBuilding * 0.25);
-  const consistency = Math.round(activeWeeksRatioV4(raw.dailyContributions, 365) * 100);
+const DIMENSION_WEIGHTS_V5: Record<keyof DimensionsV5, number> = {
+  engineeringActivity: 0.3,
+  collaboration: 0.15,
+  consistency: 0.14,
+  projectDepth: 0.07,
+  impact: 0.13,
+  breadth: 0.08,
+  community: 0.13,
+};
+
+function computeDimensionsV5(raw: RawGithubStats): DimensionsV5 {
+  const commits365 = sumDailyRangeV5(raw.dailyContributions, 365);
+  const engineeringActivity = saturate(commits365, 280);
+  const externalCollab = saturate(raw.pullRequestsMergedToOthers * 3 + raw.reviews, 30);
+  const soloBuildingRaw = raw.repoCount * 2 + commits365 / 50;
+  const soloBuilding = saturate(soloBuildingRaw, 14);
+  const collaboration = Math.round(externalCollab * 0.55 + soloBuilding * 0.45);
+  const consistency = Math.round(activeWeeksRatioV5(raw.dailyContributions, 365) * 100);
   const depthSignal =
     saturate(raw.reposWithLicense, 4) * 0.3 +
     saturate(raw.reposWithDescription, 6) * 0.3 +
     saturate(raw.avgRepoSizeKb, 500) * 0.4;
   const projectDepth = Math.round(depthSignal);
   const impact = saturate(raw.stars + raw.forks * 2 + raw.followers * 0.5, 150);
-  const breadth = saturate(raw.languageCount, 4);
-  const community = saturate(raw.issuesClosed + raw.pullRequestsMergedToOthers * 2, 20);
+  const breadth = saturate(raw.languageCount, 5);
+  const community = saturate(raw.issuesClosed + raw.pullRequestsMergedToOthers * 2, 18);
   return { engineeringActivity, collaboration, consistency, projectDepth, impact, breadth, community };
 }
 
-function weightedOverallV4(dims: Dimensions): number {
-  const raw = (Object.keys(dims) as (keyof Dimensions)[]).reduce(
-    (sum, key) => sum + dims[key] * DIMENSION_WEIGHTS_V4[key],
+function weightedOverallV5(dims: DimensionsV5): number {
+  const raw = (Object.keys(dims) as (keyof DimensionsV5)[]).reduce(
+    (sum, key) => sum + dims[key] * DIMENSION_WEIGHTS_V5[key],
     0
   );
   return Math.min(100, Math.max(0, Math.round(raw)));
 }
 
 // ----------------------------------------------------------------------------
-// Representative reconstruction of the two affected profiles: real, active,
-// mostly-solo developers — commits most weeks but not every single day of
-// those weeks, a healthy repo count, no/minimal external merged PRs, modest
-// but real stars/followers. This is the exact shape the audit identified as
-// what v4 was crushing to ~28-30.
+// Representative reconstruction: real, active, mostly-solo developers, no
+// external PRs — same shape as before, tuned so v5 lands at ~33/37.
 // ----------------------------------------------------------------------------
 
 function buildDaily(activeWeeksOutOf52: number, daysPerActiveWeek: number, commitsPerDay: number) {
@@ -123,20 +132,23 @@ function buildDaily(activeWeeksOutOf52: number, daysPerActiveWeek: number, commi
   return out;
 }
 
-function makeUser(name: string, opts: {
-  activeWeeks: number;
-  daysPerActiveWeek: number;
-  commitsPerDay: number;
-  repoCount: number;
-  externalPRs: number;
-  reviews: number;
-  stars: number;
-  forks: number;
-  followers: number;
-  languageCount: number;
-  issuesClosed: number;
-  activeYears: number;
-}): RawGithubStats {
+function makeUser(
+  name: string,
+  opts: {
+    activeWeeks: number;
+    daysPerActiveWeek: number;
+    commitsPerDay: number;
+    repoCount: number;
+    externalPRs: number;
+    reviews: number;
+    stars: number;
+    forks: number;
+    followers: number;
+    languageCount: number;
+    issuesClosed: number;
+    activeYears: number;
+  }
+): RawGithubStats {
   const dailyContributions = buildDaily(opts.activeWeeks, opts.daysPerActiveWeek, opts.commitsPerDay);
   const commits = dailyContributions.reduce((s, d) => s + d.count, 0);
   return {
@@ -167,38 +179,38 @@ function makeUser(name: string, opts: {
 }
 
 const userA = makeUser("regression-user-a", {
-  activeWeeks: 34,
-  daysPerActiveWeek: 2, // active most weeks, but not every day within them — realistic, not lazy
+  activeWeeks: 30,
+  daysPerActiveWeek: 2,
   commitsPerDay: 3,
   repoCount: 9,
-  externalPRs: 0, // "no external merged PRs" — explicitly called out in the brief as the trigger case
+  externalPRs: 0,
   reviews: 0,
-  stars: 35,
-  forks: 5,
-  followers: 45,
+  stars: 22,
+  forks: 3,
+  followers: 28,
   languageCount: 3,
-  issuesClosed: 5,
+  issuesClosed: 3,
   activeYears: 3,
 });
 
 const userB = makeUser("regression-user-b", {
-  activeWeeks: 36,
+  activeWeeks: 32,
   daysPerActiveWeek: 2,
   commitsPerDay: 2,
   repoCount: 7,
   externalPRs: 0,
   reviews: 0,
-  stars: 28,
-  forks: 3,
-  followers: 32,
+  stars: 15,
+  forks: 2,
+  followers: 18,
   languageCount: 3,
-  issuesClosed: 3,
+  issuesClosed: 2,
   activeYears: 2,
 });
 
 for (const [label, raw] of [
-  ["User A (representative of the ~61 profile)", userA],
-  ["User B (representative of the ~62 profile)", userB],
+  ["User A (representative of the ~67 GitFut / ~37 GitWicket profile)", userA],
+  ["User B (representative of the ~61 GitFut / ~33 GitWicket profile)", userB],
 ] as const) {
   console.log(`\n=== ${label} ===`);
   console.log("raw metrics:", {
@@ -209,25 +221,29 @@ for (const [label, raw] of [
     followers: raw.followers,
   });
 
-  const dimsV4 = computeDimensionsV4(raw);
-  const overallV4 = weightedOverallV4(dimsV4);
-  console.log("v4 (OLD, broken) dimensions:", dimsV4);
-  console.log("v4 (OLD, broken) overall:", overallV4);
-
   const dimsV5 = computeDimensionsV5(raw);
-  const overallV5 = weightedOverall(dimsV5);
-  console.log("v5 (NEW, fixed) dimensions:", dimsV5);
-  console.log("v5 (NEW, fixed) overall:", overallV5);
+  const overallV5 = weightedOverallV5(dimsV5);
+  console.log("v5 (previous fix) dimensions:", dimsV5);
+  console.log("v5 (previous fix) overall:", overallV5);
 
-  console.log(`delta: ${overallV5 - overallV4} points recovered`);
+  const dimsV6 = computeDimensionsV6(raw);
+  const stage1 = weightedRawScore(dimsV6);
+  const overallV6 = applyCalibrationCurve(stage1);
+  console.log("v6 (this recalibration) dimensions:", dimsV6);
+  console.log(`v6 stage1 raw score: ${Math.round(stage1 * 10) / 10}  ->  calibrated overall: ${overallV6}`);
+
+  console.log(`delta: ${overallV6 - overallV5} points recovered`);
 }
 
 console.log(
-  "\nNote: these are reconstructed representative profiles calibrated to reproduce the REPORTED SYMPTOM"
+  "\nNote: reconstructed representative profiles tuned to reproduce the REPORTED SYMPTOM (v5 landing"
 );
 console.log(
-  "(v4 landing in the high-20s/low-30s for an active, mostly-solo, zero-external-PR developer), not"
+  "in the low-to-mid-30s for an active, mostly-solo, zero-external-PR developer), not the real accounts"
 );
+console.log("themselves. GitFut's ~67/~61 are cited only as external sanity checks, not as targets — see");
+console.log("the file header and lib/rating.ts for why the correction doesn't chase that number directly.");
 console.log(
-  "the real accounts themselves — see the file header for why, and how to swap in real fetched data."
+  `\n(saturateFromFloor sanity: 0 external PRs -> collaboration = ${saturateFromFloor(0, 22, 46)} (neutral, not 0); ` +
+    `10 merged PRs -> ${saturateFromFloor(10 * 3, 22, 46)})`
 );

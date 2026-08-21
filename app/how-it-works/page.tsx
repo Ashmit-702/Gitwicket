@@ -11,11 +11,11 @@ const ROWS = [
   },
   {
     stat: "Wickets (WKT)",
-    copy: "Your Collaboration dimension: PRs merged into repos you don't own, plus reviews given, plus a smaller credit for solid solo-shipped repos. Zero external PRs doesn't zero this out — it just means you're scored mostly on the solo-building baseline until you've collaborated elsewhere.",
+    copy: "Your Collaboration dimension: PRs merged into repos you don't own, plus reviews given. Zero external PRs starts you at a neutral baseline, not zero — most solo builders and students simply haven't had the chance yet, and that's not held against you.",
   },
   {
     stat: "Economy (ECO)",
-    copy: "Your Project Depth dimension — a deliberately weak, low-weight proxy (license, description, repo size). It's a minor signal on purpose: GitHub's public API can't actually measure code quality.",
+    copy: "Your Project Strength dimension — owned, non-fork repos: how many, plus tidiness signals (license, description, realistic size). A real backbone signal, not just a minor proxy — GitHub's public API can't measure code quality directly, but genuine project ownership is measurable and counts for a lot here.",
   },
   {
     stat: "Boundaries (BND)",
@@ -76,14 +76,21 @@ export default function HowItWorksGithubPage() {
         <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
           <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
-            Built from seven weighted dimensions — Engineering Activity, Collaboration, Consistency,
-            Project Depth, Impact, Breadth, and Community — each scored 0-100 against realistic, diminishing-returns
-            curves, not against other users. Engineering Activity (commit volume) is the single strongest
-            factor. Collaboration rewards merged PRs into other people&apos;s repos most, but also gives
-            real credit for shipping your own repos consistently, so having zero external PRs doesn&apos;t
-            collapse your score — it&apos;s the normal state for most solo builders and students. Impact
+            Built from seven weighted dimensions — Engineering Activity, Project Strength, Consistency,
+            Collaboration, Impact, Breadth, and Community — each scored 0-100 against realistic,
+            diminishing-returns curves, not against other users. Engineering Activity (commit volume) and
+            Project Strength (real, owned repos) are the two biggest factors. Collaboration and Community
+            start from a <em>neutral</em> baseline rather than zero: no external merged PRs or closed
+            issues just means no evidence of that specific, optional thing yet — it&apos;s not treated as
+            a mark against you, and it&apos;s the normal state for most solo builders and students. Impact
             (stars/forks/followers) is capped hard so popularity alone can&apos;t dominate a card. You can
             see your own breakdown, dimension by dimension, on your profile page.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Those seven dimensions produce an underlying strength score, which then goes through a second,
+            separate calibration step to land on your final 0-99 rating — so an average, active profile
+            reliably lands in the middle of the scale, and only genuinely elite, sustained evidence pushes
+            into the 90s.
           </p>
           <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
             Once you have a rating on file, a new measurement blends in gradually rather than jumping

@@ -84,8 +84,14 @@ export default async function UserCardPage({ params, searchParams }: Props) {
           <ShareButton login={card.login} name={card.name} rating={card.rating} tier={card.tier} platform="github" />
           <CountryPicker />
           <a
-            href={`/compare?with=${card.login}`}
+            href={`/${card.login}/career`}
             className="mt-3 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
+          >
+            View career card →
+          </a>
+          <a
+            href={`/compare?with=${card.login}`}
+            className="mt-1 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
           >
             Compare with a friend →
           </a>

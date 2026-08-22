@@ -69,6 +69,21 @@ export interface CricketCardStats {
 
 export const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
+export function careerSummary(dimensions: DimensionBreakdown[]): { strengths: DimensionBreakdown[]; developing: DimensionBreakdown[] } {
+  // Purely a re-sort of dimensions already computed — no new scoring. Neutral-baseline
+  // dimensions (Collaboration, Community) are excluded from "developing" specifically
+  // when their verdict is Neutral: a lack of optional evidence isn't a gap to close,
+  // it's just evidence that hasn't been collected yet. See lib/evidence.ts.
+  const sorted = [...dimensions].sort((a, b) => b.score - a.score);
+  const strengths = sorted.slice(0, 2);
+  const developing = sorted
+    .slice()
+    .reverse()
+    .filter((d) => d.verdict !== "Neutral")
+    .slice(0, 2);
+  return { strengths, developing };
+}
+
 export function curve(x: number, midpoint: number): number {
   return clamp(Math.round(99 * (1 - Math.exp(-Math.max(0, x) / midpoint))), 0, 99);
 }

@@ -1,5 +1,7 @@
 import type { RawGithubStats } from "./github";
 import { computeDimensions, computeForm, weightedOverall, applyStability, DIMENSION_WEIGHTS, type Dimensions } from "./rating";
+import { computeEvidence, type Verdict } from "./evidence";
+export type { Verdict } from "./evidence";
 
 export type Role = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
 export type Tier = "Bronze" | "Silver" | "Gold" | "Legend";
@@ -29,6 +31,8 @@ export interface DimensionBreakdown {
   score: number; // 0-100
   weight: number; // 0-1
   note: string;
+  verdict: Verdict; // Evidence Engine v1 — see lib/evidence.ts. Purely explanatory, never fed back into scoring.
+  evidence: string[]; // 1-3 plain-English bullets, derived from the same raw data already fetched
 }
 
 export interface CricketCardStats {
@@ -137,6 +141,7 @@ export function mapToCricketStats(raw: RawGithubStats, previousRating: number | 
   // blend against on the first-ever reading; only later readings get smoothed).
   // ============================================================================
   const dims = computeDimensions(raw);
+  const evidenceByDimension = computeEvidence(raw, dims); // read-only — never influences dims/rating below
   const measuredOverall = weightedOverall(dims); // 0-100
   const stabilized = applyStability(previousRating === null ? null : previousRating, measuredOverall);
   const rating = clamp(Math.round(stabilized * 0.99), 0, 99); // display scale stays "out of 99"
@@ -152,6 +157,8 @@ export function mapToCricketStats(raw: RawGithubStats, previousRating: number | 
     score: dims[key],
     weight: DIMENSION_WEIGHTS[key], // single source of truth — see lib/rating.ts, no more hand-duplicated array to drift out of sync
     note: DIMENSION_META[key].note,
+    verdict: evidenceByDimension[key].verdict,
+    evidence: evidenceByDimension[key].bullets,
   }));
 
   // ============================================================================

@@ -18,10 +18,12 @@ const CACHE_SECONDS = 60 * 60 * 6; // 6 hours — cards feel fresh without hamme
 // Bump this whenever CricketCardStats' shape or the rating algorithm changes.
 // Without it, old cached entries (with a different shape / different numbers)
 // get served as-is for up to CACHE_SECONDS, silently masking any update.
-// v6: two-stage rating architecture (absolute dimensions -> explicit calibration
-// curve), neutral-baseline Collaboration/Community, Project Strength promoted to
-// a backbone dimension. See lib/rating.ts for the full writeup.
-const CACHE_VERSION = "v6";
+// v7: added the Evidence Engine (lib/evidence.ts) — each DimensionBreakdown now
+// carries a verdict + evidence bullets. Purely additive to the card shape; the
+// rating math itself (lib/rating.ts) is completely untouched, so
+// RATING_ALGORITHM_VERSION below does NOT change for this release — see that
+// constant's comment for why the two are deliberately separate.
+const CACHE_VERSION = "v7";
 
 // Separate from the 6-hour card cache — this is the rating STABILITY state (see
 // lib/rating.ts applyStability). It needs to persist far longer than a card cache

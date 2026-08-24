@@ -6,7 +6,8 @@ import PageReveal from "@/components/PageReveal";
 import CareerSnapshot from "@/components/CareerSnapshot";
 import CareerStrengths from "@/components/CareerStrengths";
 import CareerDimensionsGrid from "@/components/CareerDimensionsGrid";
-import CareerNextSteps from "@/components/CareerNextSteps";
+import CareerProofSection from "@/components/CareerProofSection";
+import ShareCareerProfile from "@/components/ShareCareerProfile";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function CareerCardPage({ params }: Props) {
         <span className="ember" />
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-4xl items-center justify-between">
+      <div className="relative z-10 mx-auto flex max-w-3xl items-center justify-between">
         <a href={`/${card.login}`} className="flex items-center gap-2 font-display text-xs uppercase tracking-widest text-chalk/70 transition hover:text-bail">
           <span aria-hidden>←</span> Back to card
         </a>
@@ -41,15 +42,18 @@ export default async function CareerCardPage({ params }: Props) {
         </a>
       </div>
 
-      <PageReveal className="relative z-10 mx-auto mt-6 max-w-4xl">
+      <PageReveal className="relative z-10 mx-auto mt-8 max-w-3xl">
         <p className="font-display text-xs uppercase tracking-widest text-bail">Career card</p>
         <h1 className="mt-1 font-display text-3xl font-black uppercase italic text-chalk sm:text-4xl">{card.name}</h1>
         <p className="mt-1 font-body text-sm text-chalk/60">
           @{card.login} · {card.tier} tier {card.role}
         </p>
+        <p className="mt-3 max-w-lg font-body text-sm text-chalk/50">See the evidence behind your developer profile.</p>
       </PageReveal>
 
-      <div className="relative z-10 mx-auto mt-8 max-w-4xl space-y-8">
+      {/* One continuous story, not a pile of cards — sections separated by whitespace
+          and dividers rather than repeated borders/boxes. */}
+      <div className="relative z-10 mx-auto mt-10 max-w-3xl space-y-12">
         <PageReveal delay={0.05}>
           <CareerSnapshot card={card} />
         </PageReveal>
@@ -59,12 +63,17 @@ export default async function CareerCardPage({ params }: Props) {
         </PageReveal>
 
         <PageReveal delay={0.15}>
-          <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Full breakdown, with evidence</p>
+          <p className="mb-1 font-display text-xs font-semibold uppercase tracking-widest text-bail">Your profile at a glance</p>
+          <p className="mb-4 font-body text-xs text-chalk/40">Tap a row to see the evidence behind it.</p>
           <CareerDimensionsGrid dimensions={card.dimensions} />
         </PageReveal>
 
         <PageReveal delay={0.2}>
-          <CareerNextSteps platform={card.platform} />
+          <CareerProofSection platform={card.platform} />
+        </PageReveal>
+
+        <PageReveal delay={0.25} className="border-t border-chalk/10 pt-8">
+          <ShareCareerProfile login={card.login} name={card.name} rating={card.rating} />
         </PageReveal>
       </div>
     </main>

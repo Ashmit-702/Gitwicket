@@ -177,6 +177,15 @@ export default function HomePage() {
           {copy.body}
         </motion.p>
 
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="mt-2 max-w-md font-body text-xs text-chalk/40"
+        >
+          Then build your deeper career profile with evidence from your work.
+        </motion.p>
+
         <motion.form
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

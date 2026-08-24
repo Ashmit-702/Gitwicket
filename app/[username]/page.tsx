@@ -82,16 +82,23 @@ export default async function UserCardPage({ params, searchParams }: Props) {
         <PageReveal delay={0} y={28} className="order-1 flex flex-col items-center lg:order-2">
           <CricketCard card={card} />
           <ShareButton login={card.login} name={card.name} rating={card.rating} tier={card.tier} platform="github" />
+
+          {card.dimensions && card.dimensions.length > 0 && (
+            <div className="mt-5 flex w-full max-w-[300px] flex-col items-center gap-2">
+              <p className="font-body text-xs text-chalk/40">Want the evidence behind your profile?</p>
+              <a
+                href={`/${card.login}/career`}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-leather bg-leather/10 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-leather transition hover:bg-leather/20"
+              >
+                View Career Card →
+              </a>
+            </div>
+          )}
+
           <CountryPicker />
           <a
-            href={`/${card.login}/career`}
-            className="mt-3 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
-          >
-            View career card →
-          </a>
-          <a
             href={`/compare?with=${card.login}`}
-            className="mt-1 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
+            className="mt-3 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
           >
             Compare with a friend →
           </a>

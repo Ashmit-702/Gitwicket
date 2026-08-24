@@ -29,7 +29,7 @@ export default function CareerStrengths({ strengths, developing }: { strengths: 
         </div>
       </div>
       <div>
-        <p className="mb-2 font-display text-xs font-semibold uppercase tracking-widest text-chalk/40">Developing</p>
+        <p className="mb-2 font-display text-xs font-semibold uppercase tracking-widest text-chalk/40">Gaps</p>
         {developing.length > 0 ? (
           <div className="flex flex-col gap-2">
             {developing.map((d, i) => (

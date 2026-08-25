@@ -6,6 +6,7 @@ import PageReveal from "@/components/PageReveal";
 import CareerSnapshot from "@/components/CareerSnapshot";
 import CareerStrengths from "@/components/CareerStrengths";
 import CareerDimensionsGrid from "@/components/CareerDimensionsGrid";
+import CareerEnrichment from "@/components/CareerEnrichment";
 import CareerProofSection from "@/components/CareerProofSection";
 import ShareCareerProfile from "@/components/ShareCareerProfile";
 
@@ -69,10 +70,14 @@ export default async function CareerCardPage({ params }: Props) {
         </PageReveal>
 
         <PageReveal delay={0.2}>
+          <CareerEnrichment card={card} />
+        </PageReveal>
+
+        <PageReveal delay={0.25}>
           <CareerProofSection platform={card.platform} />
         </PageReveal>
 
-        <PageReveal delay={0.25} className="border-t border-chalk/10 pt-8">
+        <PageReveal delay={0.3} className="border-t border-chalk/10 pt-8">
           <ShareCareerProfile login={card.login} name={card.name} rating={card.rating} />
         </PageReveal>
       </div>

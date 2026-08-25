@@ -9,7 +9,7 @@ const SOURCES: { label: string; platform: Platform }[] = [
 export default function CareerProofSection({ platform }: { platform: Platform }) {
   return (
     <div className="border-t border-chalk/10 pt-8">
-      <p className="font-display text-xs font-semibold uppercase tracking-widest text-bail">Career proof</p>
+      <p className="font-display text-xs font-semibold uppercase tracking-widest text-bail">Sources</p>
       <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-chalk/60">
         GitWicket doesn&apos;t just show what you claim — it shows the evidence behind it.
       </p>

@@ -225,6 +225,24 @@ export default function HomePage() {
 
           {error && <p className="font-mono text-xs text-[#E0665A]">{error}</p>}
         </motion.form>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="mt-8 flex flex-col items-center gap-2 border-t border-chalk/10 pt-8"
+        >
+          <p className="font-body text-xs text-chalk/40">Want more than the card?</p>
+          <a
+            href="/build-career-card"
+            className="font-display text-xs font-bold uppercase tracking-widest text-chalk/60 underline decoration-chalk/20 underline-offset-4 transition hover:text-bail hover:decoration-bail"
+          >
+            Build your Career Card →
+          </a>
+          <p className="max-w-xs text-center font-body text-[11px] text-chalk/30">
+            Combine your GitHub, CV and coding profile into one evidence-backed profile.
+          </p>
+        </motion.div>
       </section>
 
       {/* showcase cards */}

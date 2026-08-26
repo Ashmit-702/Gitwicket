@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractCvFields } from "@/lib/cvParsing";
 
-export const runtime = "nodejs"; // pdf-parse/mammoth need Node APIs, not the edge runtime
+export const runtime = "nodejs"; // unpdf/mammoth need Node APIs, not the edge runtime
 export const dynamic = "force-dynamic";
 
 // Vercel's default serverless request body limit is 4.5MB — cap well under that
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
   let text: string;
   try {
     if (kind === "pdf") {
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
+      const { extractText, getDocumentProxy } = await import("unpdf");
+      const pdf = await getDocumentProxy(new Uint8Array(buffer));
+      const result = await extractText(pdf, { mergePages: true });
       text = result.text;
     } else {
       const mammoth = await import("mammoth");
@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
       text = result.value;
     }
   } catch (err) {
+    // Log the REAL error server-side — the message returned to the client stays
+    // generic (a raw parser stack trace isn't useful to a user), but whoever has
+    // access to Vercel's function logs can see exactly what failed here.
     console.error("CV parse failure:", err);
     return NextResponse.json(
       { error: "Couldn't read that file — it may be corrupted, scanned/image-only, or password-protected." },

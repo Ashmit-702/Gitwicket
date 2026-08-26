@@ -15,21 +15,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function PillGroup({ options, value, onChange }: { options: string[]; value: string | null; onChange: (v: string) => void }) {
+function PillGroup({ options, value, onChange }: { options: string[]; value: string | null; onChange: (v: string | null) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onChange(opt)}
-          className={`rounded-full border px-3 py-1.5 font-body text-xs transition ${
-            value === opt ? "border-bail bg-bail/10 text-bail" : "border-chalk/15 text-chalk/60 hover:border-chalk/30"
-          }`}
-        >
-          {opt}
-        </button>
-      ))}
+      {options.map((opt) => {
+        const selected = value === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(selected ? null : opt)}
+            className={`rounded-full border px-3 py-1.5 font-body text-xs transition ${
+              selected ? "border-bail bg-bail/10 text-bail" : "border-chalk/15 text-chalk/60 hover:border-chalk/30"
+            }`}
+          >
+            {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }

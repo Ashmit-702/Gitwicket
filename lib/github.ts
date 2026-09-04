@@ -1,3 +1,12 @@
+export interface GithubRepoSummary {
+  name: string;
+  description: string | null;
+  primaryLanguage: string | null;
+  stars: number;
+  url: string;
+  pushedAt: string; // last push — used for recency-aware evidence ("1 old repo, no recent activity")
+}
+
 export interface RawGithubStats {
   login: string;
   name: string | null;
@@ -23,6 +32,12 @@ export interface RawGithubStats {
   reposWithLicense: number;
   reposWithDescription: number;
   avgRepoSizeKb: number;
+  // CAREER ANALYSIS ONLY — added for lib/careerProfile.ts's real Career Proof matching.
+  // Not read by lib/rating.ts / computeDimensions anywhere; adding this field cannot
+  // and does not change the rating. Per-repo detail (name/description/language/recency)
+  // is what lets Career Proof say "3 repos primarily in Python, most recently active
+  // 2 months ago" instead of the old "Not tracked" for every skill except one.
+  repos: GithubRepoSummary[];
 }
 
 const QUERY = `
@@ -37,6 +52,9 @@ query($login: String!) {
     repositories(first: 100, ownerAffiliations: OWNER, isFork: false) {
       totalCount
       nodes {
+        name
+        url
+        pushedAt
         stargazerCount
         forkCount
         diskUsage
@@ -89,6 +107,9 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
   if (!user) return null;
 
   const repoNodes: {
+    name: string;
+    url: string;
+    pushedAt: string;
     stargazerCount: number;
     forkCount: number;
     diskUsage: number | null;
@@ -134,6 +155,15 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     w.contributionDays.map((d) => ({ date: d.date, count: d.contributionCount }))
   );
 
+  const repos: GithubRepoSummary[] = repoNodes.map((r) => ({
+    name: r.name,
+    description: r.description,
+    primaryLanguage: r.primaryLanguage?.name ?? null,
+    stars: r.stargazerCount,
+    url: r.url,
+    pushedAt: r.pushedAt,
+  }));
+
   return {
     login: user.login,
     name: user.name,
@@ -158,5 +188,6 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     reposWithLicense,
     reposWithDescription,
     avgRepoSizeKb,
+    repos,
   };
 }

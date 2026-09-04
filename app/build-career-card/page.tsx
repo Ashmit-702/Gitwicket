@@ -122,7 +122,11 @@ export default function BuildCareerCardPage() {
               <p className="font-display text-xs font-semibold uppercase tracking-widest text-bail">Step 3 — About you</p>
               <p className="mt-2 font-body text-sm text-chalk/60">A few quick answers to fill gaps GitHub and your CV can&apos;t reliably tell us. All optional.</p>
               <div className="mt-5">
-                <CareerQuestions answers={answers} onChange={setAnswers} />
+                <CareerQuestions
+                  answers={answers}
+                  onChange={setAnswers}
+                  detectedProjectNames={parsedCv ? parsedCv.projects.map((p) => p.name) : []}
+                />
               </div>
               <div className="mt-8 flex gap-3">
                 <button

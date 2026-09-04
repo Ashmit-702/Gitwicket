@@ -32,6 +32,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
     accountAgeYears: 16,
     activeYears: 16,
     signatureStat: "Big-hitting star",
+    repos: [],
   },
   {
     login: "gaearon",
@@ -61,6 +62,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
     accountAgeYears: 12,
     activeYears: 12,
     signatureStat: "Safe pair of hands",
+    repos: [],
   },
   {
     login: "you",
@@ -91,6 +93,7 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
     accountAgeYears: 1.5,
     activeYears: 1,
     signatureStat: "Still finding their game",
+    repos: [],
   },
   {
     login: "neetcode",
@@ -121,5 +124,6 @@ export const SHOWCASE_CARDS: CricketCardStats[] = [
     accountAgeYears: 6,
     activeYears: 6,
     signatureStat: "Wicket-taking menace",
+    repos: [],
   },
 ];

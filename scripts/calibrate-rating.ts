@@ -108,6 +108,7 @@ function persona(p: PersonaInput): { raw: RawGithubStats; meta: PersonaInput } {
     reposWithLicense: p.reposWithLicense,
     reposWithDescription: p.reposWithDescription,
     avgRepoSizeKb: p.avgRepoSizeKb,
+    repos: [], // rating-suite fixtures don't need per-repo detail — only lib/careerProfile.ts reads this
   };
   return { raw, meta: p };
 }

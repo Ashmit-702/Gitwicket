@@ -202,5 +202,6 @@ export function mapToLeetCodeCricketStats(raw: RawLeetCodeStats): CricketCardSta
     accountAgeYears: Math.round(accountAgeYears * 10) / 10,
     activeYears,
     signatureStat,
+    repos: [], // LeetCode cards have no GitHub repo data — Career Proof gracefully shows "Not enough data" for these
   };
 }

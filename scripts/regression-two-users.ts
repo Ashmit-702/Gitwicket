@@ -175,6 +175,7 @@ function makeUser(
     reposWithLicense: Math.min(opts.repoCount, 5),
     reposWithDescription: Math.min(opts.repoCount, Math.round(opts.repoCount * 0.8)),
     avgRepoSizeKb: 350,
+    repos: [], // rating-suite fixtures don't need per-repo detail — only lib/careerProfile.ts reads this
   };
 }
 

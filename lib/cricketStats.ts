@@ -65,6 +65,10 @@ export interface CricketCardStats {
   accountAgeYears: number;
   activeYears: number;
   signatureStat: string;
+  // CAREER ANALYSIS ONLY — populated for GitHub cards, empty for LeetCode cards.
+  // Not read by any Rating Analysis code path; lib/careerProfile.ts is the only
+  // consumer. See lib/github.ts's GithubRepoSummary for field meanings.
+  repos: import("./github").GithubRepoSummary[];
 }
 
 export const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -358,5 +362,6 @@ export function mapToCricketStats(raw: RawGithubStats, previousRating: number | 
     accountAgeYears: Math.round(accountAgeYears * 10) / 10,
     activeYears,
     signatureStat,
+    repos: raw.repos,
   };
 }

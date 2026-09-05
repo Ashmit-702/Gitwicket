@@ -47,7 +47,9 @@ export interface ParsedCvExperience {
 export interface ParsedCvProject {
   name: string;
   description: string | null;
+  bullets: string[]; // separate from description — keeps the card from becoming one giant paragraph
   technologies: string[];
+  dates: string | null;
   githubUrl: string | null;
   demoUrl: string | null;
 }
@@ -282,18 +284,97 @@ function extractExperience(lines: string[]): ParsedCvExperience[] {
     .slice(0, 8);
 }
 
+/**
+ * Structural project-heading detector — used instead of relying on blank lines,
+ * which real PDF text extraction frequently destroys (this was the exact cause
+ * of "Project B bleeding into Project A"). A line is treated as a new project
+ * title when it's short, doesn't start with a bullet marker, AND either reads
+ * like a title (Title Case / ALL CAPS, few words) OR the very next line looks
+ * like project metadata (a date range, or a GitHub/demo link mention) — the
+ * same structural signals a human skimming the resume would use.
+ */
+function looksLikeProjectHeading(line: string, nextLine: string | undefined): boolean {
+  const trimmed = line.trim();
+  if (!trimmed || /^[•\-*]/.test(trimmed)) return false;
+  if (trimmed.length > 70) return false;
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  if (wordCount === 0 || wordCount > 8) return false;
+  if (DATE_RANGE_RE.test(trimmed) || YEAR_RE.test(trimmed)) return false; // a date line is metadata, not a title
+
+  const startsWithCapital = /^[A-Z]/.test(trimmed);
+  const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
+  const nextLooksLikeMetadata = !!nextLine && (DATE_RANGE_RE.test(nextLine) || /\b(github|live demo|demo:|repo:)\b/i.test(nextLine));
+
+  // Strong "this is prose, not a title" signals: ends in a sentence-final period,
+  // or opens with a common resume action verb ("Built X", "Designed Y"). Checked
+  // BEFORE the positive signals below — without this, a short capitalized
+  // sentence like "Built NLP pipeline to analyze exam PDFs." false-positives as
+  // a project heading, which is exactly what happened during testing.
+  const endsWithPeriod = /\.\s*$/.test(trimmed);
+  const startsWithActionVerb =
+    /^(built|designed|developed|created|implemented|led|managed|improved|reduced|increased|wrote|achieved|architected|engineered|optimized|automated|worked|collaborated|contributed|analyzed|deployed|integrated|used|leveraged)\b/i.test(
+      trimmed
+    );
+  if (endsWithPeriod || startsWithActionVerb) return false;
+
+  // Deliberately permissive on the remaining title check (any short, capitalized,
+  // non-bullet, non-date, non-sentence line) — real project titles come in many
+  // shapes ("Name - Subtitle", "Name: Subtitle", "Name (2024)"), and a strict
+  // Title Case regex rejects most of them over a single mid-line hyphen.
+  return isAllCaps || startsWithCapital || nextLooksLikeMetadata;
+}
+
+/**
+ * Splits the PROJECTS section into per-project blocks using structural signals
+ * first. Falls back to the generic blank-line/chunking heuristic when fewer
+ * than 2 confident headings are found — a single-project resume, or one with
+ * genuinely unrecognizable formatting, shouldn't be forced through a heading
+ * splitter that has nothing reliable to split on.
+ */
+function splitProjectBlocks(lines: string[]): string[][] {
+  const nonEmpty = lines.map((l) => l.trim()).filter(Boolean);
+  const headingIndices: number[] = [];
+  for (let i = 0; i < nonEmpty.length; i++) {
+    if (looksLikeProjectHeading(nonEmpty[i], nonEmpty[i + 1])) headingIndices.push(i);
+  }
+  if (headingIndices.length < 2) return groupIntoBlocks(lines);
+
+  const blocks: string[][] = [];
+  for (let h = 0; h < headingIndices.length; h++) {
+    const start = headingIndices[h];
+    const end = h + 1 < headingIndices.length ? headingIndices[h + 1] : nonEmpty.length;
+    blocks.push(nonEmpty.slice(start, end));
+  }
+  return blocks;
+}
+
 function extractProjects(lines: string[]): ParsedCvProject[] {
-  return groupIntoBlocks(lines)
+  return splitProjectBlocks(lines)
     .map((block): ParsedCvProject | null => {
       const name = block[0]?.replace(/[:\-–—]+$/, "").trim();
       if (!name) return null;
       const blockText = block.join(" ");
-      const description = block.slice(1).join(" ").slice(0, 300) || null;
+      const dateMatch = blockText.match(DATE_RANGE_RE);
+
+      // Separate the metadata/date line from real content lines, then split
+      // remaining lines into ONE short description + up to 4 bullets — never
+      // one giant paragraph.
+      const contentLines = block.slice(1).filter((l) => !DATE_RANGE_RE.test(l) && !/^(github|live demo|demo:|repo:)\s*[:\-]?\s*$/i.test(l.trim()));
+      const bulletLines = contentLines.filter((l) => /^[•\-*]/.test(l.trim())).map((l) => l.replace(/^[•\-*]\s*/, "").trim());
+      const proseLines = contentLines.filter((l) => !/^[•\-*]/.test(l.trim()));
+
+      const description = proseLines.join(" ").slice(0, 200) || null;
+      const bullets = (bulletLines.length > 0 ? bulletLines : proseLines.length > 1 ? proseLines.slice(1) : [])
+        .map((b) => b.slice(0, 150))
+        .filter(Boolean)
+        .slice(0, 4);
+
       const technologies = normalizeAndDedupeSkills(Object.values(extractSkillsRaw(blockText)).flat());
       const urls = Array.from(blockText.matchAll(URL_RE)).map((m) => m[0]);
       const githubUrl = urls.find((u) => /github\.com/i.test(u)) || null;
       const demoUrl = urls.find((u) => u !== githubUrl) || null;
-      return { name, description, technologies, githubUrl, demoUrl };
+
+      return { name, description, bullets, technologies, dates: dateMatch?.[0]?.trim() || null, githubUrl, demoUrl };
     })
     .filter((p): p is ParsedCvProject => p !== null)
     .slice(0, 6);

@@ -7,7 +7,8 @@ import CareerSnapshot from "@/components/CareerSnapshot";
 import CareerStrengths from "@/components/CareerStrengths";
 import CareerDimensionsGrid from "@/components/CareerDimensionsGrid";
 import CareerEnrichment from "@/components/CareerEnrichment";
-import CareerProofSection from "@/components/CareerProofSection";
+import ConnectedSources from "@/components/ConnectedSources";
+import CvAnalyzerCta from "@/components/CvAnalyzerCta";
 import ShareCareerProfile from "@/components/ShareCareerProfile";
 
 export const dynamic = "force-dynamic";
@@ -73,8 +74,12 @@ export default async function CareerCardPage({ params }: Props) {
           <CareerEnrichment card={card} />
         </PageReveal>
 
+        <PageReveal delay={0.22}>
+          <CvAnalyzerCta />
+        </PageReveal>
+
         <PageReveal delay={0.25}>
-          <CareerProofSection platform={card.platform} />
+          <ConnectedSources card={card} />
         </PageReveal>
 
         <PageReveal delay={0.3} className="border-t border-chalk/10 pt-8">

@@ -18,6 +18,9 @@ function StatusBadge({ status }: { status: EvidenceStatus }) {
   return <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${STATUS_STYLE[status]}`}>{status}</span>;
 }
 
+// Collapsed: label + status only, scannable at a glance. Expanded: the actual
+// CV-claim / public-evidence breakdown — this is the fix for Career Proof
+// reading as a bare "Skill — Status" wall with no context for *why*.
 function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   if (items.length === 0) return null;
@@ -35,7 +38,14 @@ function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
                 <span className="truncate font-body text-sm text-chalk/70">{item.label}</span>
                 <StatusBadge status={item.status} />
               </button>
-              {isOpen && <p className="pb-3 font-body text-xs leading-snug text-chalk/45">{item.evidenceSummary}</p>}
+              {isOpen && (
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-3 pl-0.5 font-body text-xs">
+                  <dt className="text-chalk/35">{item.claimedOn.includes("CV") ? "CV claim" : "Claimed"}</dt>
+                  <dd className="text-chalk/55">{item.claimDetail}</dd>
+                  <dt className="text-chalk/35">Public evidence</dt>
+                  <dd className="text-chalk/55">{item.evidenceDetail}</dd>
+                </dl>
+              )}
             </div>
           );
         })}
@@ -44,7 +54,7 @@ function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
   );
 }
 
-function EnrichedSections({ profile, card }: { profile: CareerProfile; card: CricketCardStats }) {
+function EnrichedSections({ profile }: { profile: CareerProfile }) {
   const { answers } = profile;
   const hasSnapshot = answers.targetRole || answers.currentStatus || answers.experienceYears || answers.twelveMonthGoal || profile.education.length > 0;
   const skillGroups = profile.skills ? (Object.entries(profile.skills) as [string, string[]][]).filter(([, list]) => list.length > 0) : [];
@@ -112,21 +122,39 @@ function EnrichedSections({ profile, card }: { profile: CareerProfile; card: Cri
       {profile.projectMatches.length > 0 && (
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Project highlights</p>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {profile.projectMatches.slice(0, 3).map(({ project, githubMatch }) => (
               <div key={project.name} className="border-l-2 border-chalk/10 pl-4">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <p className="font-display text-sm font-bold text-chalk/80">{project.name}</p>
+                  {project.dates && <span className="font-mono text-[10px] text-chalk/30">{project.dates}</span>}
                   {githubMatch && (
                     <a href={githubMatch.url} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] uppercase tracking-wide text-bail/70 hover:text-bail">
                       {githubMatch.confidence === "likely" ? "GitHub match" : "Possible GitHub match"} ↗
                     </a>
                   )}
+                  {project.demoUrl && (
+                    <a href={project.demoUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] uppercase tracking-wide text-chalk/40 hover:text-bail">
+                      Live demo ↗
+                    </a>
+                  )}
                 </div>
-                {project.description && <p className="mt-0.5 font-body text-xs leading-snug text-chalk/50">{project.description}</p>}
-                {project.technologies.length > 0 && <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-chalk/30">{project.technologies.join(" · ")}</p>}
+                {project.description && <p className="mt-1 font-body text-xs leading-snug text-chalk/50">{project.description}</p>}
+                {project.bullets.length > 0 && (
+                  <ul className="mt-1.5 space-y-0.5">
+                    {project.bullets.map((b, i) => (
+                      <li key={i} className="font-body text-xs leading-snug text-chalk/45">
+                        <span className="mr-1 text-chalk/25" aria-hidden>
+                          —
+                        </span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {project.technologies.length > 0 && <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">{project.technologies.join(" · ")}</p>}
                 {answers.proudestProject === project.name && answers.personalContribution && (
-                  <p className="mt-1 font-body text-xs italic text-chalk/40">Personal contribution: {answers.personalContribution}</p>
+                  <p className="mt-1.5 font-body text-xs italic text-chalk/40">Personal contribution: {answers.personalContribution}</p>
                 )}
               </div>
             ))}
@@ -159,7 +187,9 @@ function EnrichedSections({ profile, card }: { profile: CareerProfile; card: Cri
       {profile.improvementActions.length > 0 && (
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">What to improve</p>
-          <ol className="space-y-1.5">
+          {/* list-none: this is a numbered list rendered with our own typography, not the
+              browser's native <ol> counter — using both at once produced "1. 1." */}
+          <ol className="list-none space-y-1.5">
             {profile.improvementActions.map((a, i) => (
               <li key={i} className="font-body text-sm text-chalk/60">
                 <span className="mr-2 font-mono text-xs text-chalk/30">{i + 1}.</span>
@@ -169,25 +199,6 @@ function EnrichedSections({ profile, card }: { profile: CareerProfile; card: Cri
           </ol>
         </div>
       )}
-
-      {(answers.linkedinUrl || profile.person?.links.github || profile.person?.links.portfolio) && (
-        <div>
-          <p className="mb-2 font-display text-xs font-semibold uppercase tracking-widest text-bail">Sources</p>
-          <div className="flex flex-wrap gap-3">
-            {answers.linkedinUrl && (
-              <a href={answers.linkedinUrl.startsWith("http") ? answers.linkedinUrl : `https://${answers.linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="font-body text-xs text-chalk/50 underline decoration-chalk/20 hover:text-bail">
-                LinkedIn ↗
-              </a>
-            )}
-            {profile.person?.links.portfolio && (
-              <a href={profile.person.links.portfolio.startsWith("http") ? profile.person.links.portfolio : `https://${profile.person.links.portfolio}`} target="_blank" rel="noopener noreferrer" className="font-body text-xs text-chalk/50 underline decoration-chalk/20 hover:text-bail">
-                Portfolio ↗
-              </a>
-            )}
-          </div>
-          <p className="mt-1.5 font-body text-[11px] text-chalk/25">Link only — never scraped, and never a factor in the {card.rating} rating above.</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -195,6 +206,7 @@ function EnrichedSections({ profile, card }: { profile: CareerProfile; card: Cri
 export default function CareerEnrichment({ card }: { card: CricketCardStats }) {
   const [profile, setProfile] = useState<CareerProfile | null>(null);
   const [checked, setChecked] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   useEffect(() => {
     const local = loadCareerLocal(card.login);
@@ -226,16 +238,34 @@ export default function CareerEnrichment({ card }: { card: CricketCardStats }) {
 
   return (
     <div>
-      <EnrichedSections profile={profile} card={card} />
-      <button
-        onClick={() => {
-          clearCareerLocal(card.login);
-          setProfile(null);
-        }}
-        className="mt-6 font-body text-[11px] text-chalk/30 underline decoration-dotted hover:text-chalk/50"
-      >
-        Clear CV and answers from this browser
-      </button>
+      <EnrichedSections profile={profile} />
+
+      {confirmingClear ? (
+        <div className="mt-6 rounded-lg border border-leather/30 bg-leather/5 p-3">
+          <p className="font-body text-xs text-chalk/60">
+            This clears your CV and career answers from this browser only. Your GitHub card and rating are never affected.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => {
+                clearCareerLocal(card.login);
+                setProfile(null);
+                setConfirmingClear(false);
+              }}
+              className="rounded-full bg-leather px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-chalk"
+            >
+              Clear it
+            </button>
+            <button onClick={() => setConfirmingClear(false)} className="rounded-full border border-chalk/20 px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-chalk/60">
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setConfirmingClear(true)} className="mt-6 font-body text-[11px] text-chalk/30 underline decoration-dotted hover:text-chalk/50">
+          Clear CV &amp; career answers from this browser
+        </button>
+      )}
     </div>
   );
 }

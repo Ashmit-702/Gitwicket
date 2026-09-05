@@ -50,8 +50,9 @@ export type EvidenceStatus = "Strong evidence" | "Moderate evidence" | "Limited 
 export interface CareerProofItem {
   label: string;
   claimedOn: ("CV" | "Answers")[];
+  claimDetail: string; // e.g. "Yes" for a skill, or the actual claimed value for things like years of experience
+  evidenceDetail: string; // e.g. "2 repositories · primary language · recently active" — the factual finding, kept separate from status wording
   status: EvidenceStatus;
-  evidenceSummary: string; // e.g. "3 repos primarily in Python, most recently active 2 months ago"
 }
 
 export interface ProjectMatch {
@@ -87,23 +88,24 @@ function monthsAgo(dateIso: string): number {
  * account's actual repos (primary language per repo, from lib/github.ts's
  * GraphQL fetch), not just a single aggregate "topLanguage" field.
  */
-function evidenceForLanguage(label: string, card: CricketCardStats, repos: { primaryLanguage: string | null; pushedAt: string }[]): CareerProofItem {
+function evidenceForLanguage(label: string, repos: { primaryLanguage: string | null; pushedAt: string }[]): CareerProofItem {
+  const base = { label, claimedOn: ["CV"] as ("CV" | "Answers")[], claimDetail: "Yes" };
   const matching = repos.filter((r) => r.primaryLanguage && normalizeSkill(r.primaryLanguage).toLowerCase() === label.toLowerCase());
   if (matching.length === 0) {
-    return { label, claimedOn: ["CV"], status: "No public evidence", evidenceSummary: "No repositories found with this as the primary language." };
+    return { ...base, evidenceDetail: "No matching public repository found", status: "No public evidence" };
   }
   const recentCount = matching.filter((r) => Date.now() - new Date(r.pushedAt).getTime() < RECENT_MS).length;
   const repoWord = matching.length === 1 ? "repository" : "repositories";
   const recency = recentCount > 0 ? "recently active" : `last active ${monthsAgo(matching[0].pushedAt)} months ago`;
-  const summary = `${matching.length} ${repoWord} primarily in ${label}, ${recency}.`;
+  const evidenceDetail = `${matching.length} ${repoWord} · primary language · ${recency}`;
 
-  if (matching.length >= 3 || (matching.length >= 1 && recentCount > 0 && matching.length >= 2)) {
-    return { label, claimedOn: ["CV"], status: "Strong evidence", evidenceSummary: summary };
+  if (matching.length >= 3 || (matching.length >= 2 && recentCount > 0)) {
+    return { ...base, evidenceDetail, status: "Strong evidence" };
   }
   if (matching.length >= 1 && recentCount > 0) {
-    return { label, claimedOn: ["CV"], status: "Moderate evidence", evidenceSummary: summary };
+    return { ...base, evidenceDetail, status: "Moderate evidence" };
   }
-  return { label, claimedOn: ["CV"], status: "Limited evidence", evidenceSummary: summary };
+  return { ...base, evidenceDetail, status: "Limited evidence" };
 }
 
 /**
@@ -117,32 +119,39 @@ function evidenceForLanguage(label: string, card: CricketCardStats, repos: { pri
  * language is X."
  */
 function evidenceForTextSkill(label: string, repos: { name: string; description: string | null; pushedAt: string }[]): CareerProofItem {
+  const base = { label, claimedOn: ["CV"] as ("CV" | "Answers")[], claimDetail: "Yes" };
   const needle = label.toLowerCase();
   const matches = repos.filter((r) => `${r.name} ${r.description || ""}`.toLowerCase().includes(needle));
   if (matches.length === 0) {
-    return { label, claimedOn: ["CV"], status: "No public evidence", evidenceSummary: "Not mentioned in any repository name or description." };
+    return { ...base, evidenceDetail: "Not mentioned in any repository name or description", status: "No public evidence" };
   }
   const recentCount = matches.filter((r) => Date.now() - new Date(r.pushedAt).getTime() < RECENT_MS).length;
   const repoWord = matches.length === 1 ? "repo" : "repos";
   return {
-    label,
-    claimedOn: ["CV"],
+    ...base,
+    evidenceDetail: `Mentioned in ${matches.length} ${repoWord} · project evidence${recentCount > 0 ? " · recently active" : ""}`,
     status: recentCount > 0 ? "Moderate evidence" : "Limited evidence",
-    evidenceSummary: `Mentioned in ${matches.length} ${repoWord}${recentCount > 0 ? ", recently active" : ", but no recent activity"}.`,
   };
 }
 
 function buildCareerProof(card: CricketCardStats, parsedCv: ParsedCv | null, answers: CareerAnswers, repos: CricketCardStats["repos"]): CareerProofItem[] {
   const items: CareerProofItem[] = [];
   const repoList = repos || [];
+  const noDataItem = (label: string): CareerProofItem => ({
+    label,
+    claimedOn: ["CV"],
+    claimDetail: "Yes",
+    evidenceDetail: "No public repository data available for this account",
+    status: "Not enough data",
+  });
 
   if (parsedCv) {
     for (const lang of parsedCv.skills.languages) {
-      items.push(repoList.length > 0 ? evidenceForLanguage(lang, card, repoList) : { label: lang, claimedOn: ["CV"], status: "Not enough data", evidenceSummary: "No public repository data available for this account." });
+      items.push(repoList.length > 0 ? evidenceForLanguage(lang, repoList) : noDataItem(lang));
     }
     for (const category of ["frameworks", "tools", "cloud", "databases"] as const) {
       for (const item of parsedCv.skills[category]) {
-        items.push(repoList.length > 0 ? evidenceForTextSkill(item, repoList) : { label: item, claimedOn: ["CV"], status: "Not enough data", evidenceSummary: "No public repository data available for this account." });
+        items.push(repoList.length > 0 ? evidenceForTextSkill(item, repoList) : noDataItem(item));
       }
     }
   }
@@ -154,33 +163,57 @@ function buildCareerProof(card: CricketCardStats, parsedCv: ParsedCv | null, ans
     items.push({
       label: "Years of professional experience",
       claimedOn: ["Answers"],
+      claimDetail: answers.experienceYears,
+      evidenceDetail: `~${card.activeYears} active ${card.activeYears === 1 ? "year" : "years"} of public GitHub activity. Private work (e.g. a day job's private repos) won't show up here — this is public evidence, not total real-world experience.`,
       status: card.activeYears >= 3 ? "Strong evidence" : card.activeYears >= 1 ? "Moderate evidence" : "Limited evidence",
-      evidenceSummary: `Claimed: ${answers.experienceYears}. Public GitHub evidence: ~${card.activeYears} active ${card.activeYears === 1 ? "year" : "years"}. Private work (e.g. a day job's private repos) won't show up here — this is public evidence, not total real-world experience.`,
     });
   }
 
   return items.slice(0, 24);
 }
 
-/** Best-effort, conservative CV-project <-> GitHub-repo matching by name/description overlap. Never claims certainty it doesn't have. */
+/**
+ * Best-effort, conservative CV-project <-> GitHub-repo matching. Rewritten to use
+ * a real bidirectional word-overlap score rather than an arbitrary point tally —
+ * the old version under-credited common, obviously-correct matches like project
+ * "ASHLYSIS - AI Exam Intelligence Platform" vs. repo "ai-exam-platform" (nearly
+ * every meaningful word in the repo name appears in the project title, which is
+ * about as confident as this kind of heuristic match gets), showing "Possible
+ * GitHub match" when "GitHub match" was warranted.
+ */
 function matchProjectsToRepos(projects: ParsedCvProject[], repos: CricketCardStats["repos"]): ProjectMatch[] {
   const repoList = repos || [];
+  const wordsOf = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, " ")
+        .split(/[\s-]+/)
+        .filter((w) => w.length > 2)
+    );
+
   return projects.map((project) => {
-    const projectWords = project.name.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((w) => w.length > 2);
-    let best: { name: string; url: string; score: number } | null = null;
+    const projectWords = wordsOf(project.name);
+    let best: { name: string; url: string; overlapFractionOfRepo: number; overlapFractionOfProject: number } | null = null;
+
     for (const repo of repoList) {
-      const repoName = repo.name.toLowerCase();
-      const repoDesc = (repo.description || "").toLowerCase();
-      let score = 0;
-      if (repoName === project.name.toLowerCase().replace(/\s+/g, "-") || repoName === project.name.toLowerCase().replace(/\s+/g, "")) score += 3;
-      for (const w of projectWords) {
-        if (repoName.includes(w)) score += 1;
-        if (repoDesc.includes(w)) score += 0.5;
+      const repoWords = wordsOf(repo.name);
+      if (repoWords.size === 0) continue;
+
+      const repoNameOverlap = [...repoWords].filter((w) => projectWords.has(w)).length;
+      const overlapFractionOfRepo = repoNameOverlap / repoWords.size; // how much of the REPO name is explained by the project title
+      const overlapFractionOfProject = projectWords.size > 0 ? repoNameOverlap / projectWords.size : 0;
+
+      if (!best || overlapFractionOfRepo > best.overlapFractionOfRepo) {
+        best = { name: repo.name, url: repo.url, overlapFractionOfRepo, overlapFractionOfProject };
       }
-      if (!best || score > best.score) best = { name: repo.name, url: repo.url, score };
     }
-    if (!best || best.score < 1) return { project, githubMatch: null };
-    return { project, githubMatch: { name: best.name, url: best.url, confidence: best.score >= 3 ? "likely" : "possible" } };
+
+    if (!best || best.overlapFractionOfRepo < 0.3) return { project, githubMatch: null };
+    // "Likely": most of the repo's own name is explained by the project title —
+    // this is the strong, symmetric signal (not just "one word happened to match").
+    const confidence: "likely" | "possible" = best.overlapFractionOfRepo >= 0.6 ? "likely" : "possible";
+    return { project, githubMatch: { name: best.name, url: best.url, confidence } };
   });
 }
 
@@ -204,12 +237,12 @@ function buildImprovementActions(dimensions: DimensionBreakdown[], parsedCv: Par
   }
 
   // 2. A specific CV-claim-vs-evidence gap, if one exists — this is the most personalized
-  // signal available, so it's prioritized over generic advice.
+  // signal available, so it's prioritized over generic advice. Uses the actual finding
+  // (gap.evidenceDetail) rather than re-describing it, so the advice and the Career Proof
+  // table below it never say two slightly different things about the same skill.
   const gap = careerProof.find((p) => p.status === "Limited evidence" || p.status === "No public evidence");
   if (gap) {
-    actions.push(
-      `Your CV lists ${gap.label}, but your public project evidence is ${gap.status === "No public evidence" ? "not visible" : "limited"}. Add or document a project that clearly uses it.`
-    );
+    actions.push(`Your CV lists ${gap.label}, but ${gap.evidenceDetail.toLowerCase()}. Add or document a project that clearly uses it.`);
   }
 
   // 3. CV-quality check: projects without any measurable outcome.

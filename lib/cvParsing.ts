@@ -300,6 +300,10 @@ function looksLikeProjectHeading(line: string, nextLine: string | undefined): bo
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
   if (wordCount === 0 || wordCount > 8) return false;
   if (DATE_RANGE_RE.test(trimmed) || YEAR_RE.test(trimmed)) return false; // a date line is metadata, not a title
+  // "GitHub: url" / "Live Demo: url" lines are metadata belonging to the CURRENT
+  // project, never a new heading — without this exclusion, these lines (short,
+  // capital-starting) were misdetected as standalone fake "projects."
+  if (/^(github|live demo|demo|repo)\s*:/i.test(trimmed)) return false;
 
   const startsWithCapital = /^[A-Z]/.test(trimmed);
   const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
@@ -351,15 +355,22 @@ function splitProjectBlocks(lines: string[]): string[][] {
 function extractProjects(lines: string[]): ParsedCvProject[] {
   return splitProjectBlocks(lines)
     .map((block): ParsedCvProject | null => {
-      const name = block[0]?.replace(/[:\-–—]+$/, "").trim();
-      if (!name) return null;
+      const rawName = block[0]?.replace(/[:\-–—]+$/, "").trim();
+      if (!rawName) return null;
       const blockText = block.join(" ");
       const dateMatch = blockText.match(DATE_RANGE_RE);
+      // Strip an inline date out of the title itself ("ASHLYSIS Mar 2026 - May
+      // 2026" style, title+date on one line) — this was the source of the
+      // reported "duplicate date rendering": the same date text ending up both
+      // in the title AND in the dedicated dates field.
+      const name = (dateMatch ? rawName.replace(dateMatch[0], "") : rawName).replace(/[:\-–—]+$/, "").trim() || rawName;
 
-      // Separate the metadata/date line from real content lines, then split
-      // remaining lines into ONE short description + up to 4 bullets — never
-      // one giant paragraph.
-      const contentLines = block.slice(1).filter((l) => !DATE_RANGE_RE.test(l) && !/^(github|live demo|demo:|repo:)\s*[:\-]?\s*$/i.test(l.trim()));
+      // Separate metadata (date lines, "GitHub: url" / "Live Demo: url" lines —
+      // matched even with real content after the label, not just an empty
+      // label) from real content lines, then split remaining lines into ONE
+      // short description + up to 4 bullets — never one giant paragraph.
+      const isMetadataLine = (l: string) => DATE_RANGE_RE.test(l) || /^(github|live demo|demo|repo)\s*:/i.test(l.trim());
+      const contentLines = block.slice(1).filter((l) => !isMetadataLine(l));
       const bulletLines = contentLines.filter((l) => /^[•\-*]/.test(l.trim())).map((l) => l.replace(/^[•\-*]\s*/, "").trim());
       const proseLines = contentLines.filter((l) => !/^[•\-*]/.test(l.trim()));
 
@@ -377,7 +388,24 @@ function extractProjects(lines: string[]): ParsedCvProject[] {
       return { name, description, bullets, technologies, dates: dateMatch?.[0]?.trim() || null, githubUrl, demoUrl };
     })
     .filter((p): p is ParsedCvProject => p !== null)
+    .filter(isValidProject) // reject garbage fragments — see isValidProject's doc comment
     .slice(0, 6);
+}
+
+/**
+ * Minimum-confidence filter, applied AFTER extraction regardless of which path
+ * produced the block (structural heading split OR the blank-line/chunking
+ * fallback). This is the direct fix for "exam PDFs." and "under 5s." showing
+ * up as project names: a real project title doesn't end mid-sentence, and a
+ * real project has at least some content beyond a bare name.
+ */
+function isValidProject(p: ParsedCvProject): boolean {
+  const name = p.name.trim();
+  if (name.length < 3) return false;
+  if (/[.,;:]$/.test(name)) return false; // sentence fragments end in punctuation; titles don't
+  if (/^[a-z]/.test(name)) return false; // a title starting lowercase is almost always a stray sentence fragment
+  const hasRealContent = !!p.description || p.bullets.length > 0 || p.technologies.length > 0 || !!p.githubUrl;
+  return hasRealContent;
 }
 
 function extractCertifications(lines: string[]): ParsedCvCertification[] {

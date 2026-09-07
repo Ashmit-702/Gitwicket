@@ -78,18 +78,18 @@ function MultiPillGroup({ options, values, onChange, max }: { options: string[];
 export default function CareerQuestions({
   answers,
   onChange,
-  detectedProjectNames,
+  detectedProjects,
 }: {
   answers: CareerAnswers;
   onChange: (a: CareerAnswers) => void;
-  detectedProjectNames: string[]; // from CV + matched GitHub repos — lets Q5 be a selection, not blank free text
+  detectedProjects: { id: string; name: string }[]; // real, validated project objects only — never raw parser fragments (Part 5/6)
 }) {
   function set<K extends keyof CareerAnswers>(k: K, v: CareerAnswers[K]) {
     onChange({ ...answers, [k]: v });
   }
 
-  const proudestOptions = [...detectedProjectNames, "Other"];
-  const isOtherProject = answers.proudestProject !== null && !detectedProjectNames.includes(answers.proudestProject);
+  const proudestOptions = [...detectedProjects.map((p) => p.id), "other"];
+  const optionLabel = (id: string) => (id === "other" ? "Other" : detectedProjects.find((p) => p.id === id)?.name || "Other");
 
   return (
     <div className="space-y-6">
@@ -110,17 +110,30 @@ export default function CareerQuestions({
         <MultiPillGroup options={FOCUS_AREAS} values={answers.primaryFocus} onChange={(v) => set("primaryFocus", v)} max={2} />
       </Field>
 
-      {detectedProjectNames.length > 0 ? (
+      {detectedProjects.length > 0 ? (
         <Field label="5. Which project are you most proud of?">
-          <PillGroup
-            options={proudestOptions}
-            value={isOtherProject ? "Other" : answers.proudestProject}
-            onChange={(v) => set("proudestProject", v === "Other" ? "" : v)}
-          />
-          {(isOtherProject || answers.proudestProject === "") && (
+          <div className="flex flex-wrap gap-2">
+            {proudestOptions.map((id) => {
+              const selected = answers.proudestProjectId === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => set("proudestProjectId", selected ? null : id)}
+                  className={`rounded-full border px-3 py-1.5 font-body text-xs transition ${
+                    selected ? "border-bail bg-bail/10 text-bail" : "border-chalk/15 text-chalk/60 hover:border-chalk/30"
+                  }`}
+                >
+                  {optionLabel(id)}
+                </button>
+              );
+            })}
+          </div>
+          {answers.proudestProjectId === "other" && (
             <input
-              value={isOtherProject ? answers.proudestProject || "" : ""}
-              onChange={(e) => set("proudestProject", e.target.value || "Other")}
+              value={answers.otherProjectText || ""}
+              onChange={(e) => set("otherProjectText", e.target.value || null)}
               placeholder="Project name"
               className="mt-2 w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
             />
@@ -129,15 +142,18 @@ export default function CareerQuestions({
       ) : (
         <Field label="5. Which project are you most proud of? (optional)">
           <input
-            value={answers.proudestProject || ""}
-            onChange={(e) => set("proudestProject", e.target.value || null)}
+            value={answers.otherProjectText || ""}
+            onChange={(e) => {
+              set("otherProjectText", e.target.value || null);
+              set("proudestProjectId", e.target.value ? "other" : null);
+            }}
             placeholder="Project name"
             className="w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
           />
         </Field>
       )}
 
-      {answers.proudestProject && (
+      {answers.proudestProjectId && (
         <Field label="6. What did YOU personally build in it?">
           <input
             value={answers.personalContribution || ""}

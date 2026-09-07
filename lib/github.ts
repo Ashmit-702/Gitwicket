@@ -2,6 +2,7 @@ export interface GithubRepoSummary {
   name: string;
   description: string | null;
   primaryLanguage: string | null;
+  topics: string[]; // repo topic tags — a real, low-cost evidence signal for Career Proof (e.g. a repo tagged "flask")
   stars: number;
   url: string;
   pushedAt: string; // last push — used for recency-aware evidence ("1 old repo, no recent activity")
@@ -61,6 +62,9 @@ query($login: String!) {
         description
         licenseInfo { key }
         primaryLanguage { name }
+        repositoryTopics(first: 10) {
+          nodes { topic { name } }
+        }
       }
     }
     contributionsCollection {
@@ -116,6 +120,7 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     description: string | null;
     licenseInfo: { key: string } | null;
     primaryLanguage: { name: string } | null;
+    repositoryTopics?: { nodes: { topic: { name: string } }[] };
   }[] = user.repositories?.nodes ?? [];
 
   const stars = repoNodes.reduce((sum, r) => sum + r.stargazerCount, 0);
@@ -159,6 +164,7 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     name: r.name,
     description: r.description,
     primaryLanguage: r.primaryLanguage?.name ?? null,
+    topics: (r.repositoryTopics?.nodes ?? []).map((t) => t.topic.name),
     stars: r.stargazerCount,
     url: r.url,
     pushedAt: r.pushedAt,

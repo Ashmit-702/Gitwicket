@@ -125,7 +125,7 @@ export default function BuildCareerCardPage() {
                 <CareerQuestions
                   answers={answers}
                   onChange={setAnswers}
-                  detectedProjectNames={parsedCv ? parsedCv.projects.map((p) => p.name) : []}
+                  detectedProjects={parsedCv ? parsedCv.projects.map((p, i) => ({ id: String(i), name: p.name })) : []}
                 />
               </div>
               <div className="mt-8 flex gap-3">

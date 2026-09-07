@@ -28,7 +28,13 @@ export interface CareerAnswers {
   currentStatus: string | null; // Q2 — Student / Looking for internship / Working / ...
   experienceYears: string | null; // Q3 — "No professional experience" / "<1 year" / "1-2 years" / ... — NEVER "Student"
   primaryFocus: string[]; // Q4 — one or two selections, e.g. ["AI/ML", "Backend"]
-  proudestProject: string | null; // Q5 — free text OR the name of a detected CV/GitHub project
+  // Q5 — a stable reference into the canonical projects[] list, NOT a copied title
+  // string. Storing the string directly meant a re-parsed CV (different title
+  // casing, a corrected typo, etc.) could silently orphan the answer or match
+  // the wrong project. "other" is the explicit sentinel for "none of these" —
+  // paired with otherProjectText for free text in that case.
+  proudestProjectId: string | null; // index into parsedCv.projects (as a string) OR "other" OR null (unanswered)
+  otherProjectText: string | null; // only meaningful when proudestProjectId === "other"
   personalContribution: string | null; // Q6 — what THEY personally built, separate from the project's existence
   twelveMonthGoal: string | null; // Q7
   linkedinUrl: string | null; // optional, display-only — see Career Card "Sources"; never scraped, never a rating input
@@ -39,7 +45,8 @@ export const EMPTY_ANSWERS: CareerAnswers = {
   currentStatus: null,
   experienceYears: null,
   primaryFocus: [],
-  proudestProject: null,
+  proudestProjectId: null,
+  otherProjectText: null,
   personalContribution: null,
   twelveMonthGoal: null,
   linkedinUrl: null,
@@ -56,6 +63,7 @@ export interface CareerProofItem {
 }
 
 export interface ProjectMatch {
+  id: string; // stable within one parsed CV's lifetime — see CareerAnswers.proudestProjectId
   project: ParsedCvProject;
   githubMatch: { name: string; url: string; confidence: "likely" | "possible" } | null;
 }
@@ -68,6 +76,7 @@ export interface CareerProfile {
   education: ParsedCv["education"];
   experience: ParsedCv["experience"];
   projectMatches: ProjectMatch[];
+  proudestProjectId: string | null; // echoes answers.proudestProjectId — resolve against projectMatches by .id, never re-match by name/string
   skills: ParsedCv["skills"] | null;
   certifications: ParsedCv["certifications"];
   answers: CareerAnswers;
@@ -109,32 +118,66 @@ function evidenceForLanguage(label: string, repos: { primaryLanguage: string | n
 }
 
 /**
- * Non-language skills (frameworks/tools/cloud/databases) have no structured
- * per-repo field to check — GitHub's API doesn't expose per-repo topics/tech
- * stacks cheaply. The honest, non-fabricated evidence source available is
- * text matching against repo names + descriptions. This is explicitly weaker
- * than the language check above and is labeled conservatively — a text match
- * only ever reaches "Moderate", never "Strong", because a mention in a repo
- * description isn't the same strength of signal as "this repo's primary
- * language is X."
+ * Non-language skills (frameworks/tools/cloud/databases). Combines THREE
+ * independent public signals instead of the old single "text search in repo
+ * description" check that was under-crediting real evidence (Flask/FastAPI/
+ * scikit-learn/etc. showing "No public evidence" despite being genuinely
+ * present in the person's actual projects):
+ *
+ *   1. Repo TOPICS (a repo explicitly tagged "flask") — a real, deliberate
+ *      signal the repo owner set, not a guess.
+ *   2. Repo name/description text match — weaker, but still real.
+ *   3. PROJECT CROSS-REFERENCE — the CV project itself claims this technology
+ *      AND that project has a confirmed/likely match to a public GitHub repo.
+ *      This was previously computed (projectMatches) but never fed back into
+ *      Career Proof at all, which is exactly why frameworks the person
+ *      obviously used in a matched project still showed "No public evidence."
+ *
+ * Definitions (matching the product brief exactly):
+ *   Strong:   2+ of the signals above hit independently
+ *   Moderate: exactly 1 signal hits, and it's a meaningful one (topic or
+ *             project cross-reference — not just a bare substring match)
+ *   Limited:  only a weak/indirect signal (name/description text match, with
+ *             no recent activity behind it)
+ *   No public evidence: nothing found at all
  */
-function evidenceForTextSkill(label: string, repos: { name: string; description: string | null; pushedAt: string }[]): CareerProofItem {
+function evidenceForTextSkill(
+  label: string,
+  repos: { name: string; description: string | null; topics: string[]; pushedAt: string }[],
+  projectMatches: ProjectMatch[]
+): CareerProofItem {
   const base = { label, claimedOn: ["CV"] as ("CV" | "Answers")[], claimDetail: "Yes" };
   const needle = label.toLowerCase();
-  const matches = repos.filter((r) => `${r.name} ${r.description || ""}`.toLowerCase().includes(needle));
-  if (matches.length === 0) {
-    return { ...base, evidenceDetail: "Not mentioned in any repository name or description", status: "No public evidence" };
+
+  const textMatches = repos.filter((r) => `${r.name} ${r.description || ""}`.toLowerCase().includes(needle));
+  const topicMatches = repos.filter((r) => r.topics.some((t) => t.toLowerCase().includes(needle) || needle.includes(t.toLowerCase())));
+  const crossRef = projectMatches.find((pm) => pm.githubMatch && pm.project.technologies.some((t) => t.toLowerCase() === needle));
+
+  const signalCount = [textMatches.length > 0, topicMatches.length > 0, !!crossRef].filter(Boolean).length;
+  if (signalCount === 0) {
+    return { ...base, evidenceDetail: "Not mentioned in any repository name, description, or topic", status: "No public evidence" };
   }
-  const recentCount = matches.filter((r) => Date.now() - new Date(r.pushedAt).getTime() < RECENT_MS).length;
-  const repoWord = matches.length === 1 ? "repo" : "repos";
-  return {
-    ...base,
-    evidenceDetail: `Mentioned in ${matches.length} ${repoWord} · project evidence${recentCount > 0 ? " · recently active" : ""}`,
-    status: recentCount > 0 ? "Moderate evidence" : "Limited evidence",
-  };
+
+  const parts: string[] = [];
+  if (topicMatches.length > 0) parts.push(`tagged as a topic on ${topicMatches.length} ${topicMatches.length === 1 ? "repo" : "repos"}`);
+  if (crossRef) parts.push(`used in your "${crossRef.project.name}" project, matched to a public repository`);
+  if (textMatches.length > 0) parts.push(`mentioned in ${textMatches.length} repo name/description`);
+  const evidenceDetail = parts.join(" · ");
+
+  if (signalCount >= 2) return { ...base, evidenceDetail, status: "Strong evidence" };
+  if (topicMatches.length > 0 || crossRef) return { ...base, evidenceDetail, status: "Moderate evidence" };
+
+  const recentAny = textMatches.some((r) => Date.now() - new Date(r.pushedAt).getTime() < RECENT_MS);
+  return { ...base, evidenceDetail, status: recentAny ? "Moderate evidence" : "Limited evidence" };
 }
 
-function buildCareerProof(card: CricketCardStats, parsedCv: ParsedCv | null, answers: CareerAnswers, repos: CricketCardStats["repos"]): CareerProofItem[] {
+function buildCareerProof(
+  card: CricketCardStats,
+  parsedCv: ParsedCv | null,
+  answers: CareerAnswers,
+  repos: CricketCardStats["repos"],
+  projectMatches: ProjectMatch[]
+): CareerProofItem[] {
   const items: CareerProofItem[] = [];
   const repoList = repos || [];
   const noDataItem = (label: string): CareerProofItem => ({
@@ -151,7 +194,7 @@ function buildCareerProof(card: CricketCardStats, parsedCv: ParsedCv | null, ans
     }
     for (const category of ["frameworks", "tools", "cloud", "databases"] as const) {
       for (const item of parsedCv.skills[category]) {
-        items.push(repoList.length > 0 ? evidenceForTextSkill(item, repoList) : noDataItem(item));
+        items.push(repoList.length > 0 ? evidenceForTextSkill(item, repoList, projectMatches) : noDataItem(item));
       }
     }
   }
@@ -169,7 +212,17 @@ function buildCareerProof(card: CricketCardStats, parsedCv: ParsedCv | null, ans
     });
   }
 
-  return items.slice(0, 24);
+  // Cap at 10 for a scannable card (Part 12: "shorter and better," not every parsed
+  // skill dumped onto the page) — prioritize items with actual evidence findings
+  // over a long unverified tail, so the most informative rows survive the cut.
+  const statusOrder: Record<EvidenceStatus, number> = {
+    "Strong evidence": 0,
+    "Moderate evidence": 1,
+    "Limited evidence": 2,
+    "No public evidence": 3,
+    "Not enough data": 4,
+  };
+  return [...items].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]).slice(0, 10);
 }
 
 /**
@@ -192,7 +245,8 @@ function matchProjectsToRepos(projects: ParsedCvProject[], repos: CricketCardSta
         .filter((w) => w.length > 2)
     );
 
-  return projects.map((project) => {
+  return projects.map((project, index) => {
+    const id = String(index);
     const projectWords = wordsOf(project.name);
     let best: { name: string; url: string; overlapFractionOfRepo: number; overlapFractionOfProject: number } | null = null;
 
@@ -209,11 +263,11 @@ function matchProjectsToRepos(projects: ParsedCvProject[], repos: CricketCardSta
       }
     }
 
-    if (!best || best.overlapFractionOfRepo < 0.3) return { project, githubMatch: null };
+    if (!best || best.overlapFractionOfRepo < 0.3) return { id, project, githubMatch: null };
     // "Likely": most of the repo's own name is explained by the project title —
     // this is the strong, symmetric signal (not just "one word happened to match").
     const confidence: "likely" | "possible" = best.overlapFractionOfRepo >= 0.6 ? "likely" : "possible";
-    return { project, githubMatch: { name: best.name, url: best.url, confidence } };
+    return { id, project, githubMatch: { name: best.name, url: best.url, confidence } };
   });
 }
 
@@ -261,7 +315,8 @@ function buildImprovementActions(dimensions: DimensionBreakdown[], parsedCv: Par
 }
 
 export function buildCareerProfile(card: CricketCardStats, parsedCv: ParsedCv | null, answers: CareerAnswers): CareerProfile {
-  const careerProof = card.dimensions ? buildCareerProof(card, parsedCv, answers, card.repos) : [];
+  const projectMatches = parsedCv ? matchProjectsToRepos(parsedCv.projects, card.repos) : [];
+  const careerProof = card.dimensions ? buildCareerProof(card, parsedCv, answers, card.repos, projectMatches) : [];
   return {
     hasCv: parsedCv !== null,
     hasAnswers: Object.values(answers).some((v) => (Array.isArray(v) ? v.length > 0 : v !== null)),
@@ -269,7 +324,8 @@ export function buildCareerProfile(card: CricketCardStats, parsedCv: ParsedCv | 
     summary: parsedCv?.summary || null,
     education: parsedCv?.education || [],
     experience: parsedCv?.experience || [],
-    projectMatches: parsedCv ? matchProjectsToRepos(parsedCv.projects, card.repos) : [],
+    projectMatches,
+    proudestProjectId: answers.proudestProjectId,
     skills: parsedCv?.skills || null,
     certifications: parsedCv?.certifications || [],
     answers,

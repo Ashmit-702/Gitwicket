@@ -109,12 +109,19 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Technical profile</p>
           <div className="space-y-2">
-            {skillGroups.map(([category, list]) => (
-              <div key={category} className="flex flex-wrap items-baseline gap-2">
-                <span className="w-20 shrink-0 font-body text-[11px] uppercase tracking-wide text-chalk/40">{category}</span>
-                <span className="font-body text-sm text-chalk/70">{list.join(", ")}</span>
-              </div>
-            ))}
+            {skillGroups.map(([category, list]) => {
+              const shown = list.slice(0, 6);
+              const remaining = list.length - shown.length;
+              return (
+                <div key={category} className="flex flex-wrap items-baseline gap-2">
+                  <span className="w-20 shrink-0 font-body text-[11px] uppercase tracking-wide text-chalk/40">{category}</span>
+                  <span className="font-body text-sm text-chalk/70">
+                    {shown.join(", ")}
+                    {remaining > 0 && <span className="ml-1 font-mono text-xs text-chalk/30">+{remaining} more</span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -123,7 +130,7 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Project highlights</p>
           <div className="space-y-5">
-            {profile.projectMatches.slice(0, 3).map(({ project, githubMatch }) => (
+            {profile.projectMatches.slice(0, 3).map(({ id, project, githubMatch }) => (
               <div key={project.name} className="border-l-2 border-chalk/10 pl-4">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <p className="font-display text-sm font-bold text-chalk/80">{project.name}</p>
@@ -153,7 +160,7 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
                   </ul>
                 )}
                 {project.technologies.length > 0 && <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">{project.technologies.join(" · ")}</p>}
-                {answers.proudestProject === project.name && answers.personalContribution && (
+                {profile.proudestProjectId === id && answers.personalContribution && (
                   <p className="mt-1.5 font-body text-xs italic text-chalk/40">Personal contribution: {answers.personalContribution}</p>
                 )}
               </div>

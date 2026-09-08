@@ -21,7 +21,23 @@ import type { CareerAnswers } from "./careerProfile";
 // change, since everything else already just calls loadCareerLocal().
 // ============================================================================
 
+// SCHEMA_VERSION bumps whenever ParsedCv or CareerAnswers' shape changes —
+// same lesson as lib/rating.ts's RATING_ALGORITHM_VERSION. This session
+// changed both shapes multiple times (CareerAnswers gained/renamed fields
+// across three rounds; ParsedCvProject gained bullets/dates/githubUrl/
+// demoUrl partway through), and loadCareerLocal had no way to tell an old,
+// incompatible payload from a current one — it just handed old-shaped data
+// straight to new code that assumed newer fields always exist, which is
+// exactly what crashed the Career Card with "Cannot read properties of
+// undefined (reading 'length')" on project.bullets for anyone who'd built
+// their Career Card in an earlier session. Bumping this version whenever the
+// shape changes makes loadCareerLocal treat mismatched data as absent (same
+// as never having built a Career Card) instead of a landmine for whatever
+// code runs next.
+const SCHEMA_VERSION = 2;
+
 export interface CareerLocalData {
+  schemaVersion: number;
   parsedCv: ParsedCv | null;
   answers: CareerAnswers;
   updatedAt: string;
@@ -31,10 +47,10 @@ function key(username: string): string {
   return `gitwicket:career:${username.toLowerCase()}`;
 }
 
-export function saveCareerLocal(username: string, data: Omit<CareerLocalData, "updatedAt">): void {
+export function saveCareerLocal(username: string, data: Omit<CareerLocalData, "updatedAt" | "schemaVersion">): void {
   if (typeof window === "undefined") return;
   try {
-    const payload: CareerLocalData = { ...data, updatedAt: new Date().toISOString() };
+    const payload: CareerLocalData = { ...data, schemaVersion: SCHEMA_VERSION, updatedAt: new Date().toISOString() };
     window.localStorage.setItem(key(username), JSON.stringify(payload));
   } catch {
     // Storage full or unavailable (private browsing, etc.) — fail silently,
@@ -47,7 +63,13 @@ export function loadCareerLocal(username: string): CareerLocalData | null {
   try {
     const raw = window.localStorage.getItem(key(username));
     if (!raw) return null;
-    return JSON.parse(raw) as CareerLocalData;
+    const parsed = JSON.parse(raw) as Partial<CareerLocalData>;
+    if (parsed.schemaVersion !== SCHEMA_VERSION) {
+      // Old, incompatible shape — treat as if nothing was ever saved, rather
+      // than handing mismatched data to code that expects the current shape.
+      return null;
+    }
+    return parsed as CareerLocalData;
   } catch {
     return null;
   }

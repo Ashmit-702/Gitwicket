@@ -147,7 +147,7 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
                   )}
                 </div>
                 {project.description && <p className="mt-1 font-body text-xs leading-snug text-chalk/50">{project.description}</p>}
-                {project.bullets.length > 0 && (
+                {(project.bullets || []).length > 0 && (
                   <ul className="mt-1.5 space-y-0.5">
                     {project.bullets.map((b, i) => (
                       <li key={i} className="font-body text-xs leading-snug text-chalk/45">
@@ -159,7 +159,7 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
                     ))}
                   </ul>
                 )}
-                {project.technologies.length > 0 && <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">{project.technologies.join(" · ")}</p>}
+                {(project.technologies || []).length > 0 && <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">{project.technologies.join(" · ")}</p>}
                 {profile.proudestProjectId === id && answers.personalContribution && (
                   <p className="mt-1.5 font-body text-xs italic text-chalk/40">Personal contribution: {answers.personalContribution}</p>
                 )}

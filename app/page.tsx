@@ -1,317 +1,127 @@
-"use client";
+export const dynamic = "force-static";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import CricketCard from "@/components/CricketCard";
-import { SHOWCASE_CARDS } from "@/lib/showcaseCards";
-
-type Platform = "github" | "leetcode";
-
-const TICKER = [
-  { login: "torvalds", rating: 96, tier: "Legend", platform: "github" as Platform },
-  { login: "gaearon", rating: 87, tier: "Gold", platform: "github" as Platform },
-  { login: "neetcode", rating: 94, tier: "Legend", platform: "leetcode" as Platform },
-  { login: "sindresorhus", rating: 91, tier: "Legend", platform: "github" as Platform },
-  { login: "yyx990803", rating: 89, tier: "Gold", platform: "github" as Platform },
-  { login: "tj", rating: 84, tier: "Gold", platform: "github" as Platform },
-  { login: "addyosmani", rating: 79, tier: "Silver", platform: "github" as Platform },
-  { login: "kentcdodds", rating: 82, tier: "Gold", platform: "github" as Platform },
+const ROWS = [
+  {
+    stat: "Strike rate (STR)",
+    copy: "Commit pace — your Engineering Activity dimension: commits over the last year, with diminishing returns so a huge commit count doesn't linearly outscore a solid one.",
+  },
+  {
+    stat: "Batting average (AVG)",
+    copy: "A blend of Engineering Activity and Consistency — sustained volume that's also spread across the year, not just a single hot streak.",
+  },
+  {
+    stat: "Wickets (WKT)",
+    copy: "Your Collaboration dimension: PRs merged into repos you don't own, plus reviews given. Zero external PRs starts you at a neutral baseline, not zero — most solo builders and students simply haven't had the chance yet, and that's not held against you.",
+  },
+  {
+    stat: "Economy (ECO)",
+    copy: "Your Project Strength dimension — owned, non-fork repos: how many, plus tidiness signals (license, description, realistic size). A real backbone signal, not just a minor proxy — GitHub's public API can't measure code quality directly, but genuine project ownership is measurable and counts for a lot here.",
+  },
+  {
+    stat: "Boundaries (BND)",
+    copy: "Your Impact dimension: stars, forks, and followers combined, with heavy diminishing returns so popularity alone can't dominate the card.",
+  },
+  {
+    stat: "Catches (CAT)",
+    copy: "Your Community dimension: issues closed and external contributions — so maintainers and reviewers get credit, not just people shipping their own code.",
+  },
 ];
 
-const PLATFORM_COPY: Record<
-  Platform,
-  { accent: string; tagline: string; headline: [string, string]; body: string; placeholder: string; prefix: string }
-> = {
-  github: {
-    accent: "#D9A93B",
-    tagline: "Rate your GitHub out of 99",
-    headline: ["Your GitHub, rated", "as a cricket card"],
-    body: "Commits become strike rate. Pull requests become wickets. Stars become boundaries. Enter a GitHub username and get your card in seconds.",
-    placeholder: "torvalds",
-    prefix: "github.com/",
-  },
-  leetcode: {
-    accent: "#E2852B",
-    tagline: "Rate your LeetCode out of 99",
-    headline: ["Your LeetCode, rated", "as a cricket card"],
-    body: "Hard problems become wickets. Medium problems become boundaries. Acceptance rate becomes economy. Enter a LeetCode username and get your card in seconds.",
-    placeholder: "neetcode",
-    prefix: "leetcode.com/u/",
-  },
-};
-
-export default function HomePage() {
-  const router = useRouter();
-  const [platform, setPlatform] = useState<Platform>("github");
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [focused, setFocused] = useState(false);
-  const copy = PLATFORM_COPY[platform];
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = username.trim().replace(/^@/, "");
-
-    if (!trimmed) {
-      setError(`Enter a ${platform === "github" ? "GitHub" : "LeetCode"} username first.`);
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9-_]{0,37}[a-zA-Z0-9])?$/.test(trimmed)) {
-      setError("That doesn't look like a valid username.");
-      return;
-    }
-
-    setError(null);
-    router.push(platform === "github" ? `/${trimmed}` : `/lc/${trimmed}`);
-  }
-
+export default function HowItWorksGithubPage() {
   return (
-    <main className="mow-lines relative min-h-screen overflow-hidden">
-      <div className="floodlights"><span className="ember" /></div>
+    <main className="mow-lines min-h-screen px-6 py-16">
+      <div className="mx-auto max-w-2xl">
+        <div className="flex items-center justify-between">
+          <a href="/" className="font-display text-xs uppercase tracking-widest text-[#E2852B]">
+            ← GitWicket
+          </a>
+          <a href="/how-it-works/leetcode" className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-bail">
+            LeetCode version →
+          </a>
+        </div>
 
-      {/* nav */}
-      <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <a href="/" className="flex items-center gap-2.5">
-          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-leather">
-            <span
-              className="absolute h-3.5 w-px bg-chalk/70"
-              style={{ transform: "rotate(20deg)" }}
-            />
-            <span className="h-2 w-2 rounded-full bg-chalk" />
-          </span>
-          <span className="font-display text-2xl font-black italic leading-none tracking-tight text-chalk">
-            Git<span className="text-bail">Wicket</span>
-          </span>
-        </a>
-        <div className="flex items-center gap-5">
-          <a href="/compare" className="font-display text-xs uppercase tracking-widest text-chalk/60 transition hover:text-leather">
-            Compare two ⚔
-          </a>
-          <a href={platform === "github" ? "/how-it-works" : "/how-it-works/leetcode"} className="font-display text-xs uppercase tracking-widest text-chalk/60 transition hover:text-bail">
-            How it works ↗
-          </a>
-          <a
-            href="https://github.com/Ashmit-702/GitWicket"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 rounded-full border border-chalk/20 px-3 py-1.5 font-display text-xs uppercase tracking-widest text-chalk/70 transition hover:border-bail/50 hover:text-bail"
-          >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 fill-current">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-            </svg>
-            Star on GitHub
-          </a>
+        <h1 className="stagger-row mt-6 font-display text-3xl font-black uppercase italic text-chalk">
+          How GitHub gets rated
+        </h1>
+        <p className="stagger-row mt-4 font-body text-sm leading-relaxed text-chalk/70">
+          GitHub cards are pulled from your public profile — commits, merged PRs, reviews, stars, and
+          followers. Same six-stat card as LeetCode, different source, and its own tier colors so you can
+          tell the two apart at a glance.
+        </p>
+
+        <div className="mt-10 space-y-6">
+          {ROWS.map((row) => (
+            <div key={row.stat} className="stagger-row border-l-2 border-[#E2852B]/40 pl-4">
+              <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">{row.stat}</p>
+              <p className="mt-1 font-body text-sm text-chalk/60">{row.copy}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Why your card has a shape</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            The six stats above are read against each other on <em>your own</em> card — so your relatively
+            strongest signal gets pushed up and your relatively weakest gets pulled down, showing where
+            you lean as a player. That&apos;s deliberately just for the card face and the star ratings —
+            it answers &quot;what are you relatively best at,&quot; not &quot;how good are you overall.&quot;
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Your Overall rating is calculated separately, from your absolute, real-world numbers — never
+            from this relative shape. That split matters: a strong, active profile shouldn&apos;t be able
+            to out-rate a genuinely stronger one just by having a more &quot;balanced&quot; looking card.
+          </p>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Built from seven weighted dimensions — Engineering Activity, Project Strength, Consistency,
+            Collaboration, Impact, Breadth, and Community — each scored 0-100 against realistic,
+            diminishing-returns curves, not against other users. Engineering Activity (commit volume) and
+            Project Strength (real, owned repos) are the two biggest factors. Collaboration and Community
+            start from a <em>neutral</em> baseline rather than zero: no external merged PRs or closed
+            issues just means no evidence of that specific, optional thing yet — it&apos;s not treated as
+            a mark against you, and it&apos;s the normal state for most solo builders and students. Impact
+            (stars/forks/followers) is capped hard so popularity alone can&apos;t dominate a card. You can
+            see your own breakdown, dimension by dimension, on your profile page.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Those seven dimensions produce an underlying strength score, which then goes through a second,
+            separate calibration step to land on your final 0-99 rating — so an average, active profile
+            reliably lands in the middle of the scale, and only genuinely elite, sustained evidence pushes
+            into the 90s.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Once you have a rating on file, a new measurement blends in gradually rather than jumping
+            straight to whatever we measure that day — so a single noisy read can&apos;t whipsaw your
+            number, but a real, sustained change shows up clearly within a couple of regenerations.
+          </p>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Tiers</p>
+          <ul className="mt-2 space-y-1 font-body text-sm text-chalk/60">
+            <li>Bronze — below 55</li>
+            <li>Silver — 55 to 77</li>
+            <li>Gold — 78 to 89</li>
+            <li>Legend — 90+ (gated, see above)</li>
+          </ul>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">A note on the data</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            &quot;Active years&quot; and every stat above are pulled from GitHub&apos;s GraphQL API using a
+            single app-level token — the same thing anyone sees on your public profile when logged out.
+            That means commits to private repos (a day job at a company, for example) don&apos;t count
+            toward your active years or your batting average, even if you&apos;ve been shipping code there
+            for years. If most of your real work happens in private repos, your public-only rating will
+            read lower than your actual output — that&apos;s a limit of the public API, not a bug in the
+            scoring.
+          </p>
         </div>
       </div>
-
-      {/* hero */}
-      <section className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 pb-12 pt-6 text-center sm:pt-12">
-        {/* platform toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative flex rounded-full border border-chalk/15 bg-pitch/60 p-1"
-        >
-          <motion.div
-            className="absolute inset-y-1 rounded-full"
-            animate={{ left: platform === "github" ? "4px" : "50%", right: platform === "github" ? "50%" : "4px" }}
-            transition={{ type: "spring", stiffness: 400, damping: 32 }}
-            style={{ background: copy.accent }}
-          />
-          <button
-            type="button"
-            onClick={() => {
-              setPlatform("github");
-              setError(null);
-            }}
-            className={`relative z-10 rounded-full px-5 py-2 font-display text-xs font-bold uppercase tracking-widest transition-colors ${
-              platform === "github" ? "text-ink" : "text-chalk/60"
-            }`}
-          >
-            GitHub
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPlatform("leetcode");
-              setError(null);
-            }}
-            className={`relative z-10 rounded-full px-5 py-2 font-display text-xs font-bold uppercase tracking-widest transition-colors ${
-              platform === "leetcode" ? "text-ink" : "text-chalk/60"
-            }`}
-          >
-            LeetCode
-          </button>
-        </motion.div>
-
-        <motion.p
-          key={`tagline-${platform}`}
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 font-display text-xs uppercase tracking-[0.3em]"
-          style={{ color: copy.accent }}
-        >
-          {copy.tagline}
-        </motion.p>
-
-        <motion.h1
-          key={`headline-${platform}`}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.4 }}
-          className="mt-4 max-w-2xl font-display text-4xl font-black uppercase italic leading-[1.05] text-chalk sm:text-6xl"
-        >
-          {copy.headline[0]}
-          <br className="hidden sm:block" /> {copy.headline[1]}
-        </motion.h1>
-
-        <motion.p
-          key={`body-${platform}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-          className="mt-5 max-w-md font-body text-sm text-chalk/70 sm:text-base"
-        >
-          {copy.body}
-        </motion.p>
-
-        <motion.form
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
-          onSubmit={handleSubmit}
-          className="mt-9 flex w-full max-w-sm flex-col items-center gap-3"
-        >
-          <div
-            className="flex w-full items-center overflow-hidden rounded-md border-2 bg-chalk transition-shadow"
-            style={{
-              borderColor: focused ? copy.accent : "#2B3D6B",
-              boxShadow: focused ? `0 0 0 4px ${copy.accent}33` : "none",
-            }}
-          >
-            <span className="pl-4 font-mono text-sm text-ink/40">{copy.prefix}</span>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              placeholder={copy.placeholder}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              className="w-full bg-transparent py-3 pr-4 font-mono text-sm text-ink outline-none placeholder:text-ink/30"
-            />
-          </div>
-
-          <button
-            type="submit"
-            style={{ background: copy.accent }}
-            className="w-full rounded-md py-3 font-display text-sm font-semibold uppercase tracking-widest text-ink transition hover:scale-[1.01] hover:opacity-90 active:scale-[0.99]"
-          >
-            Get my card
-          </button>
-
-          {error && <p className="font-mono text-xs text-[#E0665A]">{error}</p>}
-        </motion.form>
-      </section>
-
-      {/* showcase cards */}
-      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-16">
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mb-8 text-center font-display text-xs uppercase tracking-[0.3em] text-chalk/40"
-        >
-          A few cards already on the pitch
-        </motion.p>
-        <div className="flex flex-wrap items-start justify-center gap-8">
-          {SHOWCASE_CARDS.map((card, i) => (
-            <motion.div
-              key={card.login}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: i * 0.12, duration: 0.5 }}
-              className="w-[230px]"
-            >
-              <CricketCard card={card} celebrate={false} />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* social proof ticker */}
-      <section className="relative z-10 overflow-hidden border-y border-chalk/10 bg-pitch/40 py-4">
-        <div className="marquee-track flex w-max gap-8">
-          {[...TICKER, ...TICKER].map((t, i) => (
-            <a
-              key={i}
-              href={t.platform === "github" ? `/${t.login}` : `/lc/${t.login}`}
-              className="flex shrink-0 items-center gap-2 font-mono text-xs text-chalk/50 transition hover:text-bail"
-            >
-              <span className="text-chalk/70">@{t.login}</span>
-              <span className="rounded-full bg-bail/15 px-2 py-0.5 font-semibold text-bail">{t.rating} {t.tier}</span>
-              <span className="text-[10px] uppercase tracking-widest text-chalk/30">{t.platform === "github" ? "gh" : "lc"}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* three-point pitch */}
-      <section className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            title: "Two platforms, one card",
-            copy: "Rate a GitHub or a LeetCode profile — each gets its own six-stat scorecard and its own visual identity.",
-          },
-          {
-            title: "See where you rank",
-            copy: "A distribution chart shows your rating against every card GitWicket has generated, so bragging rights come with a percentile.",
-          },
-          {
-            title: "Settle the rivalry",
-            copy: "Compare two profiles head-to-head, stat for stat, and find out whose commits actually hit harder.",
-          },
-          {
-            title: "Built to be shared",
-            copy: "Download your card as a PNG or post it straight to X — every share is a backlink.",
-          },
-        ].map((f, i) => (
-          <motion.div
-            key={f.title}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
-            className="rounded-xl border border-chalk/10 bg-pitch/50 p-6"
-          >
-            <p className="font-display text-sm font-bold uppercase tracking-wide text-bail">{f.title}</p>
-            <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">{f.copy}</p>
-          </motion.div>
-        ))}
-      </section>
-
-      {/* footer CTA */}
-      <section className="relative z-10 border-t border-chalk/10 px-6 py-14 text-center">
-        <h2 className="font-display text-2xl font-black uppercase italic text-chalk sm:text-3xl">
-          What&apos;s your rating?
-        </h2>
-        <a
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className="mt-5 inline-block rounded-md bg-bail px-8 py-3 font-display text-sm font-bold uppercase tracking-widest text-ink transition hover:opacity-90"
-        >
-          Get my card
-        </a>
-        <p className="mt-8 font-mono text-[11px] text-chalk/30">gitwicket.dev · built for the pavilion, not the boardroom</p>
-      </section>
     </main>
   );
 }

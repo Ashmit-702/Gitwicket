@@ -34,7 +34,9 @@ import type { CareerAnswers } from "./careerProfile";
 // shape changes makes loadCareerLocal treat mismatched data as absent (same
 // as never having built a Career Card) instead of a landmine for whatever
 // code runs next.
-const SCHEMA_VERSION = 2;
+// v3: added companyOrOrg / expectedGraduationYear / location to CareerAnswers
+// (structured conditional follow-up questions).
+const SCHEMA_VERSION = 3;
 
 export interface CareerLocalData {
   schemaVersion: number;

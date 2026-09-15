@@ -99,6 +99,22 @@ export default function CareerQuestions({
 
       <Field label="2. What best describes you right now?">
         <PillGroup options={CURRENT_STATUSES} value={answers.currentStatus} onChange={(v) => set("currentStatus", v)} />
+        {(answers.currentStatus === "Working" || answers.currentStatus === "Freelancing" || answers.currentStatus === "Building a startup") && (
+          <input
+            value={answers.companyOrOrg || ""}
+            onChange={(e) => set("companyOrOrg", e.target.value || null)}
+            placeholder={answers.currentStatus === "Building a startup" ? "Startup name (optional)" : "Company name (optional)"}
+            className="mt-2 w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
+          />
+        )}
+        {answers.currentStatus === "Student" && (
+          <input
+            value={answers.expectedGraduationYear || ""}
+            onChange={(e) => set("expectedGraduationYear", e.target.value || null)}
+            placeholder="Expected graduation year (optional)"
+            className="mt-2 w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
+          />
+        )}
       </Field>
 
       <Field label="3. How much professional experience do you have?">
@@ -167,6 +183,15 @@ export default function CareerQuestions({
 
       <Field label="7. Main goal for the next 12 months?">
         <PillGroup options={GOALS} value={answers.twelveMonthGoal} onChange={(v) => set("twelveMonthGoal", v)} />
+      </Field>
+
+      <Field label="Location (optional)">
+        <input
+          value={answers.location || ""}
+          onChange={(e) => set("location", e.target.value || null)}
+          placeholder="e.g. Mumbai, India"
+          className="w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
+        />
       </Field>
 
       <Field label="LinkedIn profile URL (optional)">

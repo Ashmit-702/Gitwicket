@@ -56,7 +56,7 @@ function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
 
 function EnrichedSections({ profile }: { profile: CareerProfile }) {
   const { answers } = profile;
-  const hasSnapshot = answers.targetRole || answers.currentStatus || answers.experienceYears || answers.twelveMonthGoal || profile.education.length > 0;
+  const hasSnapshot = answers.targetRole || answers.currentStatus || answers.experienceYears || answers.twelveMonthGoal || answers.location || profile.education.length > 0;
   const skillGroups = profile.skills ? (Object.entries(profile.skills) as [string, string[]][]).filter(([, list]) => list.length > 0) : [];
 
   return (
@@ -80,7 +80,11 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
             {answers.currentStatus && (
               <div>
                 <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Status</dt>
-                <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.currentStatus}</dd>
+                <dd className="mt-0.5 font-body text-sm text-chalk/80">
+                  {answers.currentStatus}
+                  {answers.companyOrOrg && <span className="text-chalk/50"> · {answers.companyOrOrg}</span>}
+                  {answers.expectedGraduationYear && <span className="text-chalk/50"> · grad. {answers.expectedGraduationYear}</span>}
+                </dd>
               </div>
             )}
             {answers.experienceYears && (
@@ -99,6 +103,12 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
               <div>
                 <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Current goal</dt>
                 <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.twelveMonthGoal}</dd>
+              </div>
+            )}
+            {answers.location && (
+              <div>
+                <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Location</dt>
+                <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.location}</dd>
               </div>
             )}
           </dl>

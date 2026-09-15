@@ -37,6 +37,12 @@ export interface CareerAnswers {
   otherProjectText: string | null; // only meaningful when proudestProjectId === "other"
   personalContribution: string | null; // Q6 — what THEY personally built, separate from the project's existence
   twelveMonthGoal: string | null; // Q7
+  // Structured conditional follow-ups — asked based on the Q2 answer, not as
+  // flat extra questions everyone sees. Keeps the questionnaire adaptive
+  // rather than a longer fixed form.
+  companyOrOrg: string | null; // shown when currentStatus is Working/Freelancing/Building a startup
+  expectedGraduationYear: string | null; // shown when currentStatus is Student
+  location: string | null; // general, always-optional
   linkedinUrl: string | null; // optional, display-only — see Career Card "Sources"; never scraped, never a rating input
 }
 
@@ -49,6 +55,9 @@ export const EMPTY_ANSWERS: CareerAnswers = {
   otherProjectText: null,
   personalContribution: null,
   twelveMonthGoal: null,
+  companyOrOrg: null,
+  expectedGraduationYear: null,
+  location: null,
   linkedinUrl: null,
 };
 

@@ -130,14 +130,41 @@ export default function CvUpload({ onParsed }: { onParsed: (cv: ParsedCv | null)
             {status === "success" && parsed && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 overflow-hidden border-t border-chalk/10 pt-4">
                 <p className="font-display text-[10px] font-semibold uppercase tracking-widest text-chalk/40">Found</p>
-                <ul className="mt-2 space-y-1 font-body text-xs text-chalk/60">
-                  {parsed.person.name && <li>Name: {parsed.person.name}</li>}
-                  <li>
-                    {parsed.experience.length} experience {parsed.experience.length === 1 ? "entry" : "entries"}, {parsed.projects.length}{" "}
-                    {parsed.projects.length === 1 ? "project" : "projects"}, {parsed.education.length} education {parsed.education.length === 1 ? "entry" : "entries"}
-                  </li>
-                  <li>{Object.values(parsed.skills).flat().length} skills detected</li>
-                </ul>
+                <dl className="mt-2 space-y-2 font-body text-xs text-chalk/60">
+                  {parsed.person.name && (
+                    <div>
+                      <dt className="text-chalk/35">Name</dt>
+                      <dd>{parsed.person.name}</dd>
+                    </div>
+                  )}
+                  {parsed.education[0] && (
+                    <div>
+                      <dt className="text-chalk/35">Education</dt>
+                      <dd>{parsed.education[0].institution}</dd>
+                    </div>
+                  )}
+                  {parsed.projects.length > 0 && (
+                    <div>
+                      <dt className="text-chalk/35">Projects</dt>
+                      <dd>{parsed.projects.map((p) => p.name).join(" · ")}</dd>
+                    </div>
+                  )}
+                  {parsed.experience.length > 0 && (
+                    <div>
+                      <dt className="text-chalk/35">Experience</dt>
+                      <dd>{parsed.experience.map((e) => e.role || "Role").join(" · ")}</dd>
+                    </div>
+                  )}
+                  {Object.values(parsed.skills).flat().length > 0 && (
+                    <div>
+                      <dt className="text-chalk/35">Skills</dt>
+                      <dd>
+                        {Object.values(parsed.skills).flat().slice(0, 10).join(", ")}
+                        {Object.values(parsed.skills).flat().length > 10 && ` +${Object.values(parsed.skills).flat().length - 10} more`}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
                 <p className="mt-3 font-body text-[11px] italic leading-snug text-chalk/35">{parsed.extractionNote}</p>
               </motion.div>
             )}

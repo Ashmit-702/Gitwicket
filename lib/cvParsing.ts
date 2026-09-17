@@ -293,13 +293,36 @@ function extractExperience(lines: string[]): ParsedCvExperience[] {
  * like project metadata (a date range, or a GitHub/demo link mention) — the
  * same structural signals a human skimming the resume would use.
  */
-function looksLikeProjectHeading(line: string, nextLine: string | undefined): boolean {
-  const trimmed = line.trim();
-  if (!trimmed || /^[•\-*]/.test(trimmed)) return false;
+/** Strips a trailing "(GitHub – Live Demo)" / "(Github | Demo)" style annotation. Used both
+ * when deciding if a line IS a heading (so the annotation's extra words don't push a real
+ * title over the word-count limit) and when cleaning the final title. */
+function stripTrailingLinkParen(line: string): string {
+  const m = line.match(/\s*\(([^)]*)\)\s*$/);
+  return m && /github|live demo|demo\b/i.test(m[1]) ? line.replace(m[0], "").trim() : line;
+}
+
+function looksLikeProjectHeading(line: string, nextLine: string | undefined, prevLine: string | undefined): boolean {
+  const raw = line.trim();
+  if (!raw || /^[•\-*]/.test(raw)) return false;
+  const trimmed = stripTrailingLinkParen(raw); // evaluate the title on its own, not inflated by a "(GitHub – Live Demo)" annotation
   if (trimmed.length > 70) return false;
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
   if (wordCount === 0 || wordCount > 8) return false;
-  if (DATE_RANGE_RE.test(trimmed) || YEAR_RE.test(trimmed)) return false; // a date line is metadata, not a title
+
+  // A date/year mention should only disqualify a line if the line IS
+  // substantially a date (e.g. "Mar 2026 – May 2026" on its own line) — NOT
+  // just because it contains a year anywhere. The old version rejected the
+  // whole line the instant a year appeared ANYWHERE in it, which meant a
+  // real title-plus-date-on-one-line format ("ASHLYSIS — AI Exam Platform
+  // 2026") never even got considered as a heading candidate at all. That's
+  // the confirmed cause of a 3-project resume only finding 1 real project —
+  // the other titles were silently disqualified here, before ever reaching
+  // the positive title checks below.
+  const dateMatch = trimmed.match(DATE_RANGE_RE);
+  const remainderAfterDate = (dateMatch ? trimmed.replace(dateMatch[0], "") : trimmed.replace(YEAR_RE, "")).trim();
+  const lineIsSubstantiallyJustADate = (dateMatch || YEAR_RE.test(trimmed)) && remainderAfterDate.length < 4;
+  if (lineIsSubstantiallyJustADate) return false;
+
   // "GitHub: url" / "Live Demo: url" lines are metadata belonging to the CURRENT
   // project, never a new heading — without this exclusion, these lines (short,
   // capital-starting) were misdetected as standalone fake "projects."
@@ -308,6 +331,11 @@ function looksLikeProjectHeading(line: string, nextLine: string | undefined): bo
   const startsWithCapital = /^[A-Z]/.test(trimmed);
   const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
   const nextLooksLikeMetadata = !!nextLine && (DATE_RANGE_RE.test(nextLine) || /\b(github|live demo|demo:|repo:)\b/i.test(nextLine));
+  // A title is very often immediately followed by its bullet list, or
+  // immediately follows the END of the PREVIOUS project's bullet list — both
+  // are strong positional signals independent of the title's own wording.
+  const nextIsBullet = !!nextLine && /^[•\-*]/.test(nextLine.trim());
+  const prevWasBullet = !!prevLine && /^[•\-*]/.test(prevLine.trim());
 
   // Strong "this is prose, not a title" signals: ends in a sentence-final period,
   // or opens with a common resume action verb ("Built X", "Designed Y"). Checked
@@ -325,7 +353,7 @@ function looksLikeProjectHeading(line: string, nextLine: string | undefined): bo
   // non-bullet, non-date, non-sentence line) — real project titles come in many
   // shapes ("Name - Subtitle", "Name: Subtitle", "Name (2024)"), and a strict
   // Title Case regex rejects most of them over a single mid-line hyphen.
-  return isAllCaps || startsWithCapital || nextLooksLikeMetadata;
+  return isAllCaps || startsWithCapital || nextLooksLikeMetadata || nextIsBullet || prevWasBullet;
 }
 
 /**
@@ -339,7 +367,7 @@ function splitProjectBlocks(lines: string[]): string[][] {
   const nonEmpty = lines.map((l) => l.trim()).filter(Boolean);
   const headingIndices: number[] = [];
   for (let i = 0; i < nonEmpty.length; i++) {
-    if (looksLikeProjectHeading(nonEmpty[i], nonEmpty[i + 1])) headingIndices.push(i);
+    if (looksLikeProjectHeading(nonEmpty[i], nonEmpty[i + 1], nonEmpty[i - 1])) headingIndices.push(i);
   }
   if (headingIndices.length < 2) return groupIntoBlocks(lines);
 
@@ -363,7 +391,8 @@ function extractProjects(lines: string[]): ParsedCvProject[] {
       // 2026" style, title+date on one line) — this was the source of the
       // reported "duplicate date rendering": the same date text ending up both
       // in the title AND in the dedicated dates field.
-      const name = (dateMatch ? rawName.replace(dateMatch[0], "") : rawName).replace(/[:\-–—]+$/, "").trim() || rawName;
+      const dateStripped = (dateMatch ? rawName.replace(dateMatch[0], "") : rawName).replace(/[:\-–—]+$/, "").trim() || rawName;
+      const name = stripTrailingLinkParen(dateStripped);
 
       // Separate metadata (date lines, "GitHub: url" / "Live Demo: url" lines —
       // matched even with real content after the label, not just an empty
@@ -403,7 +432,9 @@ function isValidProject(p: ParsedCvProject): boolean {
   const name = p.name.trim();
   if (name.length < 3) return false;
   if (/[.,;:]$/.test(name)) return false; // sentence fragments end in punctuation; titles don't
-  if (/^[a-z]/.test(name)) return false; // a title starting lowercase is almost always a stray sentence fragment
+  if (/^[a-z•\-*]/.test(name)) return false; // lowercase start OR a leftover bullet marker means this is a stray fragment, not a title
+  const wordCount = name.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 12) return false; // a real title is short; anything this long slipping through is prose, not a heading
   const hasRealContent = !!p.description || p.bullets.length > 0 || p.technologies.length > 0 || !!p.githubUrl;
   return hasRealContent;
 }

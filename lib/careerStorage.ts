@@ -36,7 +36,8 @@ import type { CareerAnswers } from "./careerProfile";
 // code runs next.
 // v3: added companyOrOrg / expectedGraduationYear / location to CareerAnswers
 // (structured conditional follow-up questions).
-const SCHEMA_VERSION = 3;
+// v4: added workMode / openToRelocation to CareerAnswers.
+const SCHEMA_VERSION = 4;
 
 export interface CareerLocalData {
   schemaVersion: number;

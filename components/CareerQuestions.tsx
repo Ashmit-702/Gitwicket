@@ -3,13 +3,16 @@
 import type { CareerAnswers } from "@/lib/careerProfile";
 
 const TARGET_ROLES = [
-  "Frontend Developer", "Backend Developer", "Full Stack Developer", "AI/ML Engineer", "Data Scientist",
-  "Data Engineer", "DevOps / Cloud", "Cybersecurity", "Mobile Developer", "Software Engineer", "Other",
+  "SDE (Software Development Engineer)", "Frontend Developer", "Backend Developer", "Full Stack Developer",
+  "AI/ML Engineer", "Data Scientist", "Data Engineer", "DevOps / Cloud", "Site Reliability Engineer (SRE)",
+  "FDE (Forward Deployed Engineer)", "Cybersecurity", "Mobile Developer", "QA / Test Engineer", "Software Engineer", "Other",
 ];
 const CURRENT_STATUSES = ["Student", "Looking for internship", "Looking for full-time", "Working", "Freelancing", "Building a startup", "Other"];
 const EXPERIENCE_YEARS = ["No professional experience", "<1 year", "1-2 years", "2-4 years", "4-7 years", "7+ years"];
 const FOCUS_AREAS = ["Frontend", "Backend", "AI/ML", "Data", "DevOps/Cloud", "Mobile", "Security", "Systems"];
 const GOALS = ["Get internship", "Get full-time job", "Switch role", "Become stronger engineer", "Build startup", "Open source", "Higher studies", "Freelance", "Other"];
+const WORK_MODES = ["Remote", "Hybrid", "On-site", "Flexible"];
+const RELOCATION_OPTIONS = ["Yes", "No", "Depends"];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -192,6 +195,14 @@ export default function CareerQuestions({
           placeholder="e.g. Mumbai, India"
           className="w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
         />
+      </Field>
+
+      <Field label="Preferred work mode (optional)">
+        <PillGroup options={WORK_MODES} value={answers.workMode} onChange={(v) => set("workMode", v)} />
+      </Field>
+
+      <Field label="Open to relocation? (optional)">
+        <PillGroup options={RELOCATION_OPTIONS} value={answers.openToRelocation} onChange={(v) => set("openToRelocation", v)} />
       </Field>
 
       <Field label="LinkedIn profile URL (optional)">

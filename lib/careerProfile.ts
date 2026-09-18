@@ -43,6 +43,8 @@ export interface CareerAnswers {
   companyOrOrg: string | null; // shown when currentStatus is Working/Freelancing/Building a startup
   expectedGraduationYear: string | null; // shown when currentStatus is Student
   location: string | null; // general, always-optional
+  workMode: string | null; // Remote / Hybrid / On-site / Flexible — genuinely useful "career readiness" context
+  openToRelocation: string | null; // Yes / No / Depends
   linkedinUrl: string | null; // optional, display-only — see Career Card "Sources"; never scraped, never a rating input
 }
 
@@ -58,6 +60,8 @@ export const EMPTY_ANSWERS: CareerAnswers = {
   companyOrOrg: null,
   expectedGraduationYear: null,
   location: null,
+  workMode: null,
+  openToRelocation: null,
   linkedinUrl: null,
 };
 

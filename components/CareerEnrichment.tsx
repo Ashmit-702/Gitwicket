@@ -56,7 +56,8 @@ function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
 
 function EnrichedSections({ profile }: { profile: CareerProfile }) {
   const { answers } = profile;
-  const hasSnapshot = answers.targetRole || answers.currentStatus || answers.experienceYears || answers.twelveMonthGoal || answers.location || profile.education.length > 0;
+  const hasSnapshot =
+    answers.targetRole || answers.currentStatus || answers.experienceYears || answers.twelveMonthGoal || answers.location || answers.workMode || answers.openToRelocation || profile.education.length > 0;
   const skillGroups = profile.skills ? (Object.entries(profile.skills) as [string, string[]][]).filter(([, list]) => list.length > 0) : [];
 
   return (
@@ -108,7 +109,22 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
             {answers.location && (
               <div>
                 <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Location</dt>
-                <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.location}</dd>
+                <dd className="mt-0.5 font-body text-sm text-chalk/80">
+                  {answers.location}
+                  {answers.workMode && <span className="text-chalk/50"> · {answers.workMode}</span>}
+                </dd>
+              </div>
+            )}
+            {!answers.location && answers.workMode && (
+              <div>
+                <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Work mode</dt>
+                <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.workMode}</dd>
+              </div>
+            )}
+            {answers.openToRelocation && (
+              <div>
+                <dt className="font-body text-[11px] uppercase tracking-wide text-chalk/40">Relocation</dt>
+                <dd className="mt-0.5 font-body text-sm text-chalk/80">{answers.openToRelocation}</dd>
               </div>
             )}
           </dl>

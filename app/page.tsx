@@ -1,3 +1,5 @@
+"use client"
+
 export const dynamic = "force-static";
 
 const ROWS = [

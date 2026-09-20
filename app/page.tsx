@@ -1,343 +1,127 @@
-"use client";
+export const dynamic = "force-static";
 
-import { FormEvent, useState } from "react";
-import Link from "next/link";
+const ROWS = [
+  {
+    stat: "Strike rate (STR)",
+    copy: "Commit pace — your Engineering Activity dimension: commits over the last year, with diminishing returns so a huge commit count doesn't linearly outscore a solid one.",
+  },
+  {
+    stat: "Batting average (AVG)",
+    copy: "A blend of Engineering Activity and Consistency — sustained volume that's also spread across the year, not just a single hot streak.",
+  },
+  {
+    stat: "Wickets (WKT)",
+    copy: "Your Collaboration dimension: PRs merged into repos you don't own, plus reviews given. Zero external PRs starts you at a neutral baseline, not zero — most solo builders and students simply haven't had the chance yet, and that's not held against you.",
+  },
+  {
+    stat: "Economy (ECO)",
+    copy: "Your Project Strength dimension — owned, non-fork repos: how many, plus tidiness signals (license, description, realistic size). A real backbone signal, not just a minor proxy — GitHub's public API can't measure code quality directly, but genuine project ownership is measurable and counts for a lot here.",
+  },
+  {
+    stat: "Boundaries (BND)",
+    copy: "Your Impact dimension: stars, forks, and followers combined, with heavy diminishing returns so popularity alone can't dominate the card.",
+  },
+  {
+    stat: "Catches (CAT)",
+    copy: "Your Community dimension: issues closed and external contributions — so maintainers and reviewers get credit, not just people shipping their own code.",
+  },
+];
 
-export default function HomePage() {
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const cleanUsername = username.trim().replace(/^@/, "");
-
-    if (!cleanUsername) return;
-
-    setLoading(true);
-    window.location.href = `/${encodeURIComponent(cleanUsername)}`;
-  }
-
+export default function HowItWorksGithubPage() {
   return (
-    <main className="mow-lines min-h-screen overflow-hidden">
-      {/* Header */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7">
-        <Link
-          href="/"
-          className="font-display text-sm font-black uppercase tracking-[0.18em] text-chalk"
-        >
-          GitWicket
-        </Link>
+    <main className="mow-lines min-h-screen px-6 py-16">
+      <div className="mx-auto max-w-2xl">
+        <div className="flex items-center justify-between">
+          <a href="/" className="font-display text-xs uppercase tracking-widest text-[#E2852B]">
+            ← GitWicket
+          </a>
+          <a href="/how-it-works/leetcode" className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-bail">
+            LeetCode version →
+          </a>
+        </div>
 
-        <nav className="flex items-center gap-6">
-          <Link
-            href="/compare"
-            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
-          >
-            Compare
-          </Link>
+        <h1 className="stagger-row mt-6 font-display text-3xl font-black uppercase italic text-chalk">
+          How GitHub gets rated
+        </h1>
+        <p className="stagger-row mt-4 font-body text-sm leading-relaxed text-chalk/70">
+          GitHub cards are pulled from your public profile — commits, merged PRs, reviews, stars, and
+          followers. Same six-stat card as LeetCode, different source, and its own tier colors so you can
+          tell the two apart at a glance.
+        </p>
 
-          <Link
-            href="/how-it-works"
-            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
-          >
-            How It Works
-          </Link>
-        </nav>
-      </header>
+        <div className="mt-10 space-y-6">
+          {ROWS.map((row) => (
+            <div key={row.stat} className="stagger-row border-l-2 border-[#E2852B]/40 pl-4">
+              <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">{row.stat}</p>
+              <p className="mt-1 font-body text-sm text-chalk/60">{row.copy}</p>
+            </div>
+          ))}
+        </div>
 
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-14 md:pb-28 md:pt-20">
-        <div className="max-w-4xl">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-[#E2852B]">
-            GitHub × Career Intelligence
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Why your card has a shape</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            The six stats above are read against each other on <em>your own</em> card — so your relatively
+            strongest signal gets pushed up and your relatively weakest gets pulled down, showing where
+            you lean as a player. That&apos;s deliberately just for the card face and the star ratings —
+            it answers &quot;what are you relatively best at,&quot; not &quot;how good are you overall.&quot;
           </p>
-
-          <h1 className="mt-5 font-display text-5xl font-black uppercase italic leading-[0.9] text-chalk sm:text-6xl md:text-8xl">
-            Your developer
-            <br />
-            career,{" "}
-            <span className="text-[#E2852B]">
-              scouted.
-            </span>
-          </h1>
-
-          <p className="mt-7 max-w-2xl font-body text-base leading-relaxed text-chalk/65 md:text-lg">
-            Turn your GitHub into a cricket card in seconds. Then build a
-            deeper career profile from your projects, CV, coding activity and
-            career goals.
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Your Overall rating is calculated separately, from your absolute, real-world numbers — never
+            from this relative shape. That split matters: a strong, active profile shouldn&apos;t be able
+            to out-rate a genuinely stronger one just by having a more &quot;balanced&quot; looking card.
           </p>
         </div>
 
-        {/* GitHub Card Generator */}
-        <div className="mt-10 max-w-2xl">
-          <form onSubmit={handleSubmit}>
-            <label
-              htmlFor="github-username"
-              className="mb-3 block font-display text-xs font-bold uppercase tracking-widest text-chalk/45"
-            >
-              GitHub username
-            </label>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex flex-1 items-center border border-chalk/15 bg-chalk/[0.025] transition focus-within:border-[#E2852B]/60">
-                <span className="pl-4 font-body text-chalk/30">@</span>
-
-                <input
-                  id="github-username"
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="yourusername"
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="min-w-0 flex-1 bg-transparent px-2 py-4 font-body text-base text-chalk outline-none placeholder:text-chalk/25"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !username.trim()}
-                className="border border-[#E2852B] bg-[#E2852B] px-7 py-4 font-display text-sm font-black uppercase tracking-widest text-[#11161E] transition hover:-translate-y-0.5 hover:bg-[#F09A42] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {loading ? "Loading..." : "Get My Card"}
-              </button>
-            </div>
-
-            <p className="mt-3 font-body text-xs text-chalk/30">
-              No signup. Public GitHub data only.
-            </p>
-          </form>
-        </div>
-
-        {/* Career Card Highlight */}
-        <section className="mt-24 border-y border-chalk/10 py-10">
-          <div className="max-w-3xl">
-            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
-              The deeper layer
-            </p>
-
-            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-5xl">
-              Build your Career Card.
-            </h2>
-
-            <p className="mt-4 max-w-2xl font-body text-sm leading-relaxed text-chalk/55 md:text-base">
-              Go beyond a GitHub rating. Combine your work, CV, coding activity
-              and career goals into one evidence-backed developer profile.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {/* Career Card CTA */}
-            <Link
-              href="/build-career-card"
-              className="group border border-[#E2852B]/35 bg-[#E2852B]/[0.025] p-6 transition hover:border-[#E2852B]/70 hover:bg-[#E2852B]/[0.045] md:p-8"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                    Career Card
-                  </p>
-
-                  <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
-                    What you&apos;ve built.
-                  </h3>
-                </div>
-
-                <span className="text-2xl text-chalk/25 transition group-hover:text-[#E2852B]">
-                  →
-                </span>
-              </div>
-
-              <div className="mt-7 space-y-3">
-                <div className="flex items-center justify-between border-b border-chalk/10 pb-3">
-                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
-                    Career
-                  </span>
-                  <span className="font-body text-sm text-chalk/65">
-                    Experience
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between border-b border-chalk/10 pb-3">
-                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
-                    Evidence
-                  </span>
-                  <span className="font-body text-sm text-chalk/65">
-                    Public work
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
-                    Direction
-                  </span>
-                  <span className="font-body text-sm text-chalk/65">
-                    Goals & gaps
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-8 inline-flex border border-[#E2852B] px-5 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition group-hover:bg-[#E2852B] group-hover:text-[#11161E]">
-                Build Career Card →
-              </div>
-            </Link>
-
-            {/* Cricket Card explanation */}
-            <div className="border border-chalk/10 bg-chalk/[0.02] p-6 md:p-8">
-              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                Cricket Card
-              </p>
-
-              <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
-                How you play.
-              </h3>
-
-              <p className="mt-4 font-body text-sm leading-relaxed text-chalk/50">
-                GitHub activity becomes a cricket player card with an overall
-                rating, form, six stats, dimensions and comparison.
-              </p>
-
-              <div className="mt-8 grid grid-cols-3 gap-2">
-                {["OVR", "FORM", "STATS"].map((item) => (
-                  <div
-                    key={item}
-                    className="border border-chalk/10 p-3"
-                  >
-                    <p className="font-display text-[10px] font-bold tracking-widest text-chalk/35">
-                      {item}
-                    </p>
-
-                    <div className="mt-3 h-2 w-2/3 bg-[#E2852B]/65" />
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-6 font-body text-xs text-chalk/35">
-                Fast. Public. Shareable.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Product Flow */}
-        <section className="py-20">
-          <div className="mb-10">
-            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
-              How GitWicket works
-            </p>
-
-            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-4xl">
-              From code to career.
-            </h2>
-          </div>
-
-          <div className="grid gap-0 border-y border-chalk/10 md:grid-cols-3">
-            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:pr-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                01
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                Get your card
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Enter a GitHub username and get a cricket-style developer card
-                in seconds.
-              </p>
-            </div>
-
-            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:px-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                02
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                Build your profile
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Add your CV and answer a few meaningful career questions.
-              </p>
-            </div>
-
-            <div className="py-8 md:pl-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                03
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                See the evidence
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Understand strengths, gaps, project evidence and how your CV
-                lines up with your public work.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Bottom CTA */}
-        <section className="border border-[#E2852B]/25 bg-[#E2852B]/[0.025] p-7 md:p-10">
-          <div className="flex flex-col items-start justify-between gap-7 md:flex-row md:items-center">
-            <div>
-              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                Career Card
-              </p>
-
-              <h2 className="mt-2 font-display text-2xl font-black uppercase italic text-chalk md:text-3xl">
-                Go beyond the rating.
-              </h2>
-
-              <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-chalk/50">
-                Build a profile around what you&apos;ve actually built, what
-                you want next and what your public evidence supports.
-              </p>
-            </div>
-
-            <Link
-              href="/build-career-card"
-              className="shrink-0 border border-[#E2852B] px-6 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition hover:bg-[#E2852B] hover:text-[#11161E]"
-            >
-              Build Career Card →
-            </Link>
-          </div>
-        </section>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-chalk/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display text-xs font-bold uppercase tracking-widest text-chalk/30">
-            GitWicket
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Overall rating</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Built from seven weighted dimensions — Engineering Activity, Project Strength, Consistency,
+            Collaboration, Impact, Breadth, and Community — each scored 0-100 against realistic,
+            diminishing-returns curves, not against other users. Engineering Activity (commit volume) and
+            Project Strength (real, owned repos) are the two biggest factors. Collaboration and Community
+            start from a <em>neutral</em> baseline rather than zero: no external merged PRs or closed
+            issues just means no evidence of that specific, optional thing yet — it&apos;s not treated as
+            a mark against you, and it&apos;s the normal state for most solo builders and students. Impact
+            (stars/forks/followers) is capped hard so popularity alone can&apos;t dominate a card. You can
+            see your own breakdown, dimension by dimension, on your profile page.
           </p>
-
-          <div className="flex flex-wrap gap-5">
-            <Link
-              href="/compare"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              Compare
-            </Link>
-
-            <Link
-              href="/build-career-card"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              Career Card
-            </Link>
-
-            <Link
-              href="/how-it-works"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              How It Works
-            </Link>
-          </div>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Those seven dimensions produce an underlying strength score, which then goes through a second,
+            separate calibration step to land on your final 0-99 rating — so an average, active profile
+            reliably lands in the middle of the scale, and only genuinely elite, sustained evidence pushes
+            into the 90s.
+          </p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            Once you have a rating on file, a new measurement blends in gradually rather than jumping
+            straight to whatever we measure that day — so a single noisy read can&apos;t whipsaw your
+            number, but a real, sustained change shows up clearly within a couple of regenerations.
+          </p>
         </div>
-      </footer>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">Tiers</p>
+          <ul className="mt-2 space-y-1 font-body text-sm text-chalk/60">
+            <li>Bronze — below 55</li>
+            <li>Silver — 55 to 77</li>
+            <li>Gold — 78 to 89</li>
+            <li>Legend — 90+ (gated, see above)</li>
+          </ul>
+        </div>
+
+        <div className="stagger-row mt-10 border-t border-chalk/10 pt-6">
+          <p className="font-display text-sm font-bold uppercase tracking-wide text-[#E2852B]">A note on the data</p>
+          <p className="mt-2 font-body text-sm leading-relaxed text-chalk/60">
+            &quot;Active years&quot; and every stat above are pulled from GitHub&apos;s GraphQL API using a
+            single app-level token — the same thing anyone sees on your public profile when logged out.
+            That means commits to private repos (a day job at a company, for example) don&apos;t count
+            toward your active years or your batting average, even if you&apos;ve been shipping code there
+            for years. If most of your real work happens in private repos, your public-only rating will
+            read lower than your actual output — that&apos;s a limit of the public API, not a bug in the
+            scoring.
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

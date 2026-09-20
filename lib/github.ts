@@ -3,6 +3,7 @@ export interface GithubRepoSummary {
   description: string | null;
   primaryLanguage: string | null;
   topics: string[]; // repo topic tags — a real, low-cost evidence signal for Career Proof (e.g. a repo tagged "flask")
+  homepageUrl: string | null; // GitHub's own "website" field — where a deployed demo link lives (Vercel/Netlify/etc.)
   stars: number;
   url: string;
   pushedAt: string; // last push — used for recency-aware evidence ("1 old repo, no recent activity")
@@ -55,6 +56,7 @@ query($login: String!) {
       nodes {
         name
         url
+        homepageUrl
         pushedAt
         stargazerCount
         forkCount
@@ -113,6 +115,7 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
   const repoNodes: {
     name: string;
     url: string;
+    homepageUrl: string | null;
     pushedAt: string;
     stargazerCount: number;
     forkCount: number;
@@ -165,6 +168,7 @@ export async function fetchGithubStats(username: string): Promise<RawGithubStats
     description: r.description,
     primaryLanguage: r.primaryLanguage?.name ?? null,
     topics: (r.repositoryTopics?.nodes ?? []).map((t) => t.topic.name),
+    homepageUrl: r.homepageUrl && r.homepageUrl.trim().length > 0 ? r.homepageUrl : null,
     stars: r.stargazerCount,
     url: r.url,
     pushedAt: r.pushedAt,

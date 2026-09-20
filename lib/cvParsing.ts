@@ -334,7 +334,6 @@ function looksLikeProjectHeading(line: string, nextLine: string | undefined, pre
   // A title is very often immediately followed by its bullet list, or
   // immediately follows the END of the PREVIOUS project's bullet list — both
   // are strong positional signals independent of the title's own wording.
-  const nextIsBullet = !!nextLine && /^[•\-*]/.test(nextLine.trim());
   const prevWasBullet = !!prevLine && /^[•\-*]/.test(prevLine.trim());
 
   // Strong "this is prose, not a title" signals: ends in a sentence-final period,
@@ -353,7 +352,18 @@ function looksLikeProjectHeading(line: string, nextLine: string | undefined, pre
   // non-bullet, non-date, non-sentence line) — real project titles come in many
   // shapes ("Name - Subtitle", "Name: Subtitle", "Name (2024)"), and a strict
   // Title Case regex rejects most of them over a single mid-line hyphen.
-  return isAllCaps || startsWithCapital || nextLooksLikeMetadata || nextIsBullet || prevWasBullet;
+  // A bare "starts with a capital letter" is too weak on its own — real
+  // description sentences without a trailing period ("Real-time sentiment
+  // analysis using transformer models") also start with a capital, and this
+  // caused a confirmed over-split during testing (a false-positive heading
+  // orphaned the REAL next project's title, which had no content left to
+  // attach to and got filtered out entirely by isValidProject). Real project
+  // titles overwhelmingly either have a "Name — Subtitle" / "Name: Subtitle"
+  // separator, or are very short (<=4 words) with no separator needed at all.
+  const hasTitleSeparator = /\s[-–—:]\s/.test(trimmed) || /^\S+:\s*\S/.test(trimmed);
+  const startsWithCapitalAndLooksLikeTitle = startsWithCapital && (hasTitleSeparator || wordCount <= 4);
+
+  return isAllCaps || startsWithCapitalAndLooksLikeTitle || nextLooksLikeMetadata || prevWasBullet;
 }
 
 /**

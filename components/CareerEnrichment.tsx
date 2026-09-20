@@ -156,22 +156,31 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Project highlights</p>
           <div className="space-y-5">
-            {profile.projectMatches.slice(0, 3).map(({ id, project, githubMatch }) => (
+            {profile.projectMatches.slice(0, 3).map(({ id, project, githubMatch, deploymentStatus, demoUrl }) => (
               <div key={project.name} className="border-l-2 border-chalk/10 pl-4">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <p className="font-display text-sm font-bold text-chalk/80">{project.name}</p>
                   {project.dates && <span className="font-mono text-[10px] text-chalk/30">{project.dates}</span>}
                   {githubMatch && (
                     <a href={githubMatch.url} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] uppercase tracking-wide text-bail/70 hover:text-bail">
-                      {githubMatch.confidence === "likely" ? "GitHub match" : "Possible GitHub match"} ↗
+                      {githubMatch.confidence === "likely" ? "GitHub" : "Possible GitHub"} ↗
                     </a>
                   )}
-                  {project.demoUrl && (
-                    <a href={project.demoUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] uppercase tracking-wide text-chalk/40 hover:text-bail">
+                  {demoUrl && (
+                    <a href={demoUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] uppercase tracking-wide text-chalk/40 hover:text-bail">
                       Live demo ↗
                     </a>
                   )}
                 </div>
+                {/* Deployment vs. traction, kept visually distinct — this is the direct fix for a
+                    confirmed bug where "public visibility limited" advice was shown for already-
+                    deployed projects. */}
+                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">
+                  {deploymentStatus === "deployed-with-traction" && "Live demo · real public traction"}
+                  {deploymentStatus === "deployed-limited-traction" && "Live demo · limited public traction"}
+                  {deploymentStatus === "github-only" && "GitHub only · no live demo found"}
+                  {deploymentStatus === "no-public-evidence" && "No public repository match"}
+                </p>
                 {project.description && <p className="mt-1 font-body text-xs leading-snug text-chalk/50">{project.description}</p>}
                 {(project.bullets || []).length > 0 && (
                   <ul className="mt-1.5 space-y-0.5">
@@ -216,6 +225,57 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
       )}
 
       <CareerProofTable items={profile.careerProof} />
+
+      {profile.roleAlignment && (profile.roleAlignment.strong.length > 0 || profile.roleAlignment.needsEvidence.length > 0) && (
+        <div>
+          <p className="mb-1 font-display text-xs font-semibold uppercase tracking-widest text-bail">Role alignment</p>
+          <p className="mb-3 font-body text-xs text-chalk/40">
+            Your evidence, read through the lens of {profile.roleAlignment.role} — not a prediction, just a regrouping of what&apos;s above.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {profile.roleAlignment.strong.length > 0 && (
+              <div>
+                <p className="mb-1.5 font-body text-[11px] uppercase tracking-wide text-bail/70">Strong</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.roleAlignment.strong.map((s) => (
+                    <span key={s} className="rounded-full bg-bail/10 px-2 py-0.5 font-mono text-[10px] text-bail">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.roleAlignment.needsEvidence.length > 0 && (
+              <div>
+                <p className="mb-1.5 font-body text-[11px] uppercase tracking-wide text-chalk/40">Needs evidence</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.roleAlignment.needsEvidence.map((s) => (
+                    <span key={s} className="rounded-full bg-chalk/5 px-2 py-0.5 font-mono text-[10px] text-chalk/50">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {profile.consistencyInsights.length > 0 && (
+        <div>
+          <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">CV ↔ GitHub consistency</p>
+          <ul className="space-y-1">
+            {profile.consistencyInsights.map((insight, i) => (
+              <li key={i} className="font-body text-xs leading-snug text-chalk/55">
+                <span className="mr-1.5 text-chalk/25" aria-hidden>
+                  —
+                </span>
+                {insight}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {profile.improvementActions.length > 0 && (
         <div>

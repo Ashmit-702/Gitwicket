@@ -75,10 +75,21 @@ export interface CareerProofItem {
   status: EvidenceStatus;
 }
 
+export type DeploymentStatus = "deployed-with-traction" | "deployed-limited-traction" | "github-only" | "no-public-evidence";
+
 export interface ProjectMatch {
   id: string; // stable within one parsed CV's lifetime — see CareerAnswers.proudestProjectId
   project: ParsedCvProject;
   githubMatch: { name: string; url: string; confidence: "likely" | "possible" } | null;
+  // Deployment and public traction are DIFFERENT things — this was a real, confirmed
+  // bug in the old recommendation copy ("publish this project" for a project that
+  // was already deployed with a live demo, just without many stars). deployed =
+  // does a working demo URL exist (CV-stated OR the matched repo's own homepage
+  // field). traction = separate evidence of reach (stars). A project can be
+  // deployed with zero traction, or have some traction with no deploy — never
+  // conflate the two.
+  deploymentStatus: DeploymentStatus;
+  demoUrl: string | null;
 }
 
 export interface CareerProfile {
@@ -95,7 +106,15 @@ export interface CareerProfile {
   answers: CareerAnswers;
   careerProof: CareerProofItem[];
   improvementActions: string[];
+  consistencyInsights: string[]; // CV <-> GitHub agreement/gap observations — see buildConsistencyInsights
+  roleAlignment: RoleAlignment | null; // only populated when answers.targetRole is set
   lowConfidenceExtraction: boolean;
+}
+
+export interface RoleAlignment {
+  role: string;
+  strong: string[]; // skills expected for this role with Strong/Moderate evidence
+  needsEvidence: string[]; // skills expected for this role with Limited/No evidence
 }
 
 const RECENT_MS = 12 * 30 * 24 * 60 * 60 * 1000; // ~12 months, for "recent activity" evidence language
@@ -258,10 +277,15 @@ function matchProjectsToRepos(projects: ParsedCvProject[], repos: CricketCardSta
         .filter((w) => w.length > 2)
     );
 
+  // "Real traction" bar — arbitrary but documented: a couple of friend-stars
+  // shouldn't count as traction, but this is deliberately a low bar, not a
+  // popularity contest (that's what the Impact rating dimension is for).
+  const TRACTION_STAR_THRESHOLD = 3;
+
   return projects.map((project, index) => {
     const id = String(index);
     const projectWords = wordsOf(project.name);
-    let best: { name: string; url: string; overlapFractionOfRepo: number; overlapFractionOfProject: number } | null = null;
+    let best: { name: string; url: string; homepageUrl: string | null; stars: number; overlapFractionOfRepo: number } | null = null;
 
     for (const repo of repoList) {
       const repoWords = wordsOf(repo.name);
@@ -269,29 +293,59 @@ function matchProjectsToRepos(projects: ParsedCvProject[], repos: CricketCardSta
 
       const repoNameOverlap = [...repoWords].filter((w) => projectWords.has(w)).length;
       const overlapFractionOfRepo = repoNameOverlap / repoWords.size; // how much of the REPO name is explained by the project title
-      const overlapFractionOfProject = projectWords.size > 0 ? repoNameOverlap / projectWords.size : 0;
 
       if (!best || overlapFractionOfRepo > best.overlapFractionOfRepo) {
-        best = { name: repo.name, url: repo.url, overlapFractionOfRepo, overlapFractionOfProject };
+        best = { name: repo.name, url: repo.url, homepageUrl: repo.homepageUrl, stars: repo.stars, overlapFractionOfRepo };
       }
     }
 
-    if (!best || best.overlapFractionOfRepo < 0.3) return { id, project, githubMatch: null };
+    // Deployment: a demo URL from the CV itself, OR the matched repo's own
+    // "homepage" field (GitHub's real field for a deployed site link) — checked
+    // independently of match confidence, since the CV author stating their own
+    // demo URL is already good evidence on its own.
+    const demoUrl = project.demoUrl || best?.homepageUrl || null;
+    let deploymentStatus: DeploymentStatus;
+    if (demoUrl) {
+      deploymentStatus = (best?.stars ?? 0) >= TRACTION_STAR_THRESHOLD ? "deployed-with-traction" : "deployed-limited-traction";
+    } else if (best && best.overlapFractionOfRepo >= 0.3) {
+      deploymentStatus = "github-only";
+    } else {
+      deploymentStatus = "no-public-evidence";
+    }
+
+    if (!best || best.overlapFractionOfRepo < 0.3) return { id, project, githubMatch: null, deploymentStatus, demoUrl };
     // "Likely": most of the repo's own name is explained by the project title —
     // this is the strong, symmetric signal (not just "one word happened to match").
     const confidence: "likely" | "possible" = best.overlapFractionOfRepo >= 0.6 ? "likely" : "possible";
-    return { id, project, githubMatch: { name: best.name, url: best.url, confidence } };
+    return { id, project, githubMatch: { name: best.name, url: best.url, confidence }, deploymentStatus, demoUrl };
   });
 }
 
-function buildImprovementActions(dimensions: DimensionBreakdown[], parsedCv: ParsedCv | null, careerProof: CareerProofItem[]): string[] {
+function buildImprovementActions(
+  dimensions: DimensionBreakdown[],
+  parsedCv: ParsedCv | null,
+  careerProof: CareerProofItem[],
+  projectMatches: ProjectMatch[]
+): string[] {
   const actions: string[] = [];
 
   // 1. Weakest genuine (non-neutral) dimension, phrased with the actual evidence behind it.
+  // Impact specifically now checks REAL deployment state first — this is the fix for a
+  // confirmed bug: telling someone to "publish your project with a demo link" when they
+  // already have one deployed is wrong and undermines trust in the whole recommendation
+  // engine. Deployment and public traction are different things; the copy below only
+  // ever recommends deploying if nothing in projectMatches is actually deployed.
   const weakest = [...dimensions].filter((d) => d.verdict !== "Neutral").sort((a, b) => a.score - b.score)[0];
   if (weakest) {
     if (weakest.label === "Impact") {
-      actions.push("Your engineering evidence is solid, but public visibility is limited. Publish 1-2 of your strongest projects somewhere people will see them, with a working demo link.");
+      const anyDeployed = projectMatches.some((m) => m.deploymentStatus === "deployed-with-traction" || m.deploymentStatus === "deployed-limited-traction");
+      if (anyDeployed) {
+        actions.push(
+          "Your strongest projects are already deployed — the gap is public traction, not deployment. Improve discoverability with a polished README, screenshots, and a clearly linked demo."
+        );
+      } else {
+        actions.push("Your engineering evidence is solid, but nothing is publicly deployed yet. Publish 1-2 of your strongest projects with a working demo link.");
+      }
     } else if (weakest.label === "Consistency") {
       actions.push(`Your activity is concentrated rather than spread out (${weakest.evidence[0] || "based on your commit history"}). A few commits most weeks reads stronger than occasional large bursts.`);
     } else if (weakest.label === "Collaboration") {
@@ -313,10 +367,10 @@ function buildImprovementActions(dimensions: DimensionBreakdown[], parsedCv: Par
   }
 
   // 3. CV-quality check: projects without any measurable outcome.
-  if (parsedCv) {
+  if (parsedCv && actions.length < 3) {
     const noMetrics = parsedCv.projects.filter((p) => p.description && !/\d/.test(p.description));
-    if (noMetrics.length > 0 && actions.length < 3) {
-      actions.push("Add measurable impact to your CV project descriptions — numbers stick more than adjectives.");
+    if (noMetrics.length > 0) {
+      actions.push("Several project descriptions lack measurable outcomes. Add metrics — users, latency, accuracy, scale — anywhere they're truthfully available.");
     }
   }
 
@@ -325,6 +379,72 @@ function buildImprovementActions(dimensions: DimensionBreakdown[], parsedCv: Par
   }
 
   return actions.slice(0, 3);
+}
+
+/**
+ * CV <-> GitHub consistency observations (Part 15). Deliberately simple,
+ * count-based comparisons — no fuzzy claims about "how well your CV matches
+ * your work," just factual observations a reader can verify themselves.
+ */
+function buildConsistencyInsights(parsedCv: ParsedCv | null, careerProof: CareerProofItem[], projectMatches: ProjectMatch[]): string[] {
+  if (!parsedCv) return [];
+  const insights: string[] = [];
+
+  const claimedSkillCount = Object.values(parsedCv.skills).flat().length;
+  const evidencedSkillCount = careerProof.filter((p) => p.status === "Strong evidence" || p.status === "Moderate evidence").length;
+  if (claimedSkillCount > 0) {
+    insights.push(`Your CV lists ${claimedSkillCount} skills, ${evidencedSkillCount} with meaningful public evidence.`);
+  }
+
+  const matchedProjects = projectMatches.filter((m) => m.githubMatch);
+  if (parsedCv.projects.length > 0) {
+    insights.push(`${matchedProjects.length} of ${parsedCv.projects.length} CV projects have a matching public GitHub repository.`);
+  }
+
+  // Surface the single strongest unmatched project as a specific, actionable observation
+  // rather than a vague "add more projects."
+  const unmatched = projectMatches.find((m) => !m.githubMatch);
+  if (unmatched) {
+    insights.push(`"${unmatched.project.name}" is on your CV but doesn't have a clearly matching public repository — worth double-checking it's public and named recognizably.`);
+  }
+
+  return insights.slice(0, 3);
+}
+
+// Representative skill keywords per target role — deliberately a starting set, not
+// exhaustive. Used only to sort ALREADY-COMPUTED Career Proof evidence into "strong
+// for this role" vs "needs evidence for this role" — this never invents a score or
+// predicts hireability, it just re-groups real evidence through the lens of the
+// role the person said they're targeting.
+const ROLE_SKILL_HINTS: Record<string, string[]> = {
+  "AI/ML Engineer": ["python", "tensorflow", "pytorch", "scikit-learn", "pandas", "numpy"],
+  "Data Scientist": ["python", "pandas", "numpy", "scikit-learn", "sql"],
+  "Data Engineer": ["python", "sql", "spark", "airflow", "postgresql"],
+  "Backend Developer": ["node.js", "python", "java", "postgresql", "mongodb", "rest apis"],
+  "Frontend Developer": ["javascript", "typescript", "react", "vue", "next.js"],
+  "Full Stack Developer": ["javascript", "typescript", "react", "node.js", "postgresql"],
+  "DevOps / Cloud": ["docker", "kubernetes", "aws", "terraform", "ci/cd"],
+  "Site Reliability Engineer (SRE)": ["docker", "kubernetes", "aws", "terraform", "prometheus"],
+  "Mobile Developer": ["swift", "kotlin", "react native"],
+  "SDE (Software Development Engineer)": ["java", "python", "c++", "javascript", "rest apis"],
+  "FDE (Forward Deployed Engineer)": ["python", "javascript", "rest apis", "sql"],
+};
+
+function buildRoleAlignment(targetRole: string | null, careerProof: CareerProofItem[]): RoleAlignment | null {
+  if (!targetRole) return null;
+  const hints = ROLE_SKILL_HINTS[targetRole];
+  if (!hints) return null;
+
+  const strong: string[] = [];
+  const needsEvidence: string[] = [];
+  for (const hint of hints) {
+    const item = careerProof.find((p) => p.label.toLowerCase() === hint);
+    if (!item) continue; // not claimed at all — not a gap to call out, just absent from the CV
+    if (item.status === "Strong evidence" || item.status === "Moderate evidence") strong.push(item.label);
+    else needsEvidence.push(item.label);
+  }
+  if (strong.length === 0 && needsEvidence.length === 0) return null;
+  return { role: targetRole, strong, needsEvidence };
 }
 
 export function buildCareerProfile(card: CricketCardStats, parsedCv: ParsedCv | null, answers: CareerAnswers): CareerProfile {
@@ -343,7 +463,9 @@ export function buildCareerProfile(card: CricketCardStats, parsedCv: ParsedCv | 
     certifications: parsedCv?.certifications || [],
     answers,
     careerProof,
-    improvementActions: card.dimensions ? buildImprovementActions(card.dimensions, parsedCv, careerProof) : [],
+    improvementActions: card.dimensions ? buildImprovementActions(card.dimensions, parsedCv, careerProof, projectMatches) : [],
+    consistencyInsights: buildConsistencyInsights(parsedCv, careerProof, projectMatches),
+    roleAlignment: buildRoleAlignment(answers.targetRole, careerProof),
     lowConfidenceExtraction: parsedCv?.extractionConfidence === "low",
   };
 }

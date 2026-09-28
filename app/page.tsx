@@ -1,239 +1,355 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 
-const USERNAME_RE =
-  /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
-
-function cleanUsername(value: string) {
-  return value
-    .trim()
-    .replace(/^@/, "")
-    .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
-    .replace(/\/.*$/, "");
-}
-
-export default function ComparePage() {
+export default function HomePage() {
   const router = useRouter();
 
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Safely support /compare?with=username
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const withUser = params.get("with");
-
-    if (withUser) {
-      setA(cleanUsername(withUser));
-    }
-  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmedA = cleanUsername(a);
-    const trimmedB = cleanUsername(b);
+    const cleanUsername = username.trim().replace(/^@/, "");
 
-    setError(null);
-
-    if (!trimmedA || !trimmedB) {
-      setError("Enter both GitHub usernames.");
-      return;
-    }
-
-    if (!USERNAME_RE.test(trimmedA) || !USERNAME_RE.test(trimmedB)) {
-      setError("One of those doesn't look like a valid GitHub username.");
-      return;
-    }
-
-    if (trimmedA.toLowerCase() === trimmedB.toLowerCase()) {
-      setError("Pick two different GitHub users.");
-      return;
-    }
+    if (!cleanUsername) return;
 
     setLoading(true);
 
-    router.push(
-      `/compare/${encodeURIComponent(trimmedA)}/${encodeURIComponent(
-        trimmedB
-      )}`
-    );
+    router.push(`/${encodeURIComponent(cleanUsername)}`);
   }
 
   return (
-    <main className="mow-lines relative min-h-screen overflow-hidden px-6 py-8">
-      {/* Ambient background */}
-      <div className="floodlights" aria-hidden="true">
-        <span className="ember" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between">
+    <main className="mow-lines min-h-screen overflow-hidden">
+      {/* HEADER */}
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7">
         <Link
           href="/"
-          className="group flex items-center gap-2 font-display text-xs font-bold uppercase tracking-widest text-chalk/65 transition hover:text-chalk"
+          className="font-display text-sm font-black uppercase tracking-[0.18em] text-chalk"
         >
-          <span className="transition-transform group-hover:-translate-x-1">
-            ←
-          </span>
-          Back
+          GitWicket
         </Link>
 
-        <Link
-          href="/how-it-works"
-          className="font-display text-xs uppercase tracking-widest text-chalk/35 transition hover:text-[#E2852B]"
-        >
-          How it works
-        </Link>
+        <nav className="flex items-center gap-5 sm:gap-7">
+          <Link
+            href="/compare"
+            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
+          >
+            Compare
+          </Link>
+
+          <Link
+            href="/how-it-works"
+            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
+          >
+            How It Works
+          </Link>
+        </nav>
       </header>
 
-      {/* Main */}
-      <section className="relative z-10 mx-auto flex min-h-[calc(100vh-100px)] max-w-xl flex-col items-center justify-center px-2 pb-16 pt-12 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="font-display text-xs font-bold uppercase tracking-[0.3em] text-[#E2852B]"
-        >
-          Settle it
-        </motion.div>
+      {/* HERO */}
+      <section className="mx-auto max-w-6xl px-6 pb-20 pt-14 md:pb-24 md:pt-20">
+        <div className="max-w-4xl">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.25em] text-[#E2852B]">
+            GitHub × Career Intelligence
+          </p>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
-          className="mt-3 font-display text-4xl font-black uppercase italic leading-none text-chalk sm:text-5xl"
-        >
-          Compare two
-          <br />
-          GitHubs
-        </motion.h1>
+          <h1 className="mt-5 font-display text-5xl font-black uppercase italic leading-[0.88] text-chalk sm:text-6xl md:text-8xl">
+            Your developer
+            <br />
+            career,{" "}
+            <span className="text-[#E2852B]">
+              scouted.
+            </span>
+          </h1>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.16 }}
-          className="mt-4 max-w-md font-body text-sm leading-relaxed text-chalk/55"
-        >
-          Put two developer profiles head-to-head and compare their GitWicket
-          ratings, stats and dimensions.
-        </motion.p>
+          <p className="mt-7 max-w-2xl font-body text-base leading-relaxed text-chalk/65 md:text-lg">
+            Turn your GitHub into a cricket card in seconds. Then go deeper
+            with a Career Card built from your work, CV, coding activity and
+            career goals.
+          </p>
+        </div>
 
-        {/* Form */}
-        <motion.form
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.22 }}
-          onSubmit={handleSubmit}
-          className="mt-9 w-full"
-        >
-          <div className="border border-chalk/10 bg-chalk/[0.025] p-4 sm:p-5">
-            {/* Player A */}
-            <div className="text-left">
-              <label
-                htmlFor="player-a"
-                className="mb-2 block font-display text-[11px] font-bold uppercase tracking-[0.18em] text-[#E2852B]"
-              >
-                Developer 01
-              </label>
+        {/* GITHUB INPUT */}
+        <div className="mt-10 max-w-2xl">
+          <form onSubmit={handleSubmit}>
+            <label
+              htmlFor="github-username"
+              className="mb-3 block font-display text-xs font-bold uppercase tracking-widest text-chalk/45"
+            >
+              GitHub username
+            </label>
 
-              <div className="flex items-center rounded-md border-2 border-dusk bg-chalk transition focus-within:border-[#E2852B]">
-                <span className="pl-4 font-mono text-sm text-ink/35">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-1 items-center border border-chalk/15 bg-chalk/[0.025] transition focus-within:border-[#E2852B]/70">
+                <span className="pl-4 font-body text-chalk/30">
                   @
                 </span>
 
                 <input
-                  id="player-a"
+                  id="github-username"
+                  name="username"
                   type="text"
-                  value={a}
-                  onChange={(e) => setA(e.target.value)}
-                  placeholder="github.com/you"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="yourusername"
+                  autoComplete="off"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  autoComplete="off"
                   spellCheck={false}
-                  className="w-full bg-transparent px-2 py-3.5 font-mono text-sm text-ink outline-none placeholder:text-ink/30"
+                  className="min-w-0 flex-1 bg-transparent px-2 py-4 font-body text-base text-chalk outline-none placeholder:text-chalk/25"
                 />
               </div>
+
+              <button
+                type="submit"
+                disabled={loading || !username.trim()}
+                className="border border-[#E2852B] bg-[#E2852B] px-7 py-4 font-display text-sm font-black uppercase tracking-widest text-[#11161E] transition hover:-translate-y-0.5 hover:bg-[#F09A42] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {loading ? "Loading..." : "Get My Card"}
+              </button>
             </div>
 
-            {/* VS */}
-            <div className="flex items-center gap-3 py-4">
-              <div className="h-px flex-1 bg-chalk/10" />
+            <p className="mt-3 font-body text-xs text-chalk/30">
+              No signup. Public GitHub data only.
+            </p>
+          </form>
+        </div>
 
-              <span className="font-display text-xs font-black uppercase tracking-[0.25em] text-chalk/30">
-                VS
+        {/* CAREER CARD HIGHLIGHT */}
+        <section className="mt-24 border-y border-chalk/10 py-10">
+          <div className="max-w-3xl">
+            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
+              The deeper layer
+            </p>
+
+            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-5xl">
+              Build your Career Card.
+            </h2>
+
+            <p className="mt-4 max-w-2xl font-body text-sm leading-relaxed text-chalk/55 md:text-base">
+              Combine GitHub, your CV, coding activity and career goals into
+              one evidence-backed developer profile.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            {/* CAREER CARD */}
+            <Link
+              href="/build-career-card"
+              className="group border border-[#E2852B]/35 bg-[#E2852B]/[0.025] p-6 transition hover:border-[#E2852B]/70 hover:bg-[#E2852B]/[0.045] md:p-8"
+            >
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
+                    Career Card
+                  </p>
+
+                  <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
+                    What you&apos;ve built.
+                  </h3>
+                </div>
+
+                <span className="text-2xl text-chalk/20 transition group-hover:text-[#E2852B]">
+                  →
+                </span>
+              </div>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center justify-between border-b border-chalk/10 pb-3">
+                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
+                    Career
+                  </span>
+
+                  <span className="font-body text-sm text-chalk/65">
+                    Experience
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-chalk/10 pb-3">
+                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
+                    Evidence
+                  </span>
+
+                  <span className="font-body text-sm text-chalk/65">
+                    Public work
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-xs uppercase tracking-widest text-chalk/35">
+                    Direction
+                  </span>
+
+                  <span className="font-body text-sm text-chalk/65">
+                    Goals & gaps
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-8 inline-flex border border-[#E2852B] px-5 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition group-hover:bg-[#E2852B] group-hover:text-[#11161E]">
+                Build Career Card →
+              </div>
+            </Link>
+
+            {/* CRICKET CARD */}
+            <div className="border border-chalk/10 bg-chalk/[0.02] p-6 md:p-8">
+              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
+                Cricket Card
+              </p>
+
+              <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
+                How you play.
+              </h3>
+
+              <p className="mt-4 font-body text-sm leading-relaxed text-chalk/50">
+                GitHub activity becomes a cricket player card with an overall
+                rating, current form, player stats, dimensions and comparison.
+              </p>
+
+              <div className="mt-8 grid grid-cols-3 gap-2">
+                {["OVR", "FORM", "STATS"].map((item) => (
+                  <div
+                    key={item}
+                    className="border border-chalk/10 p-3"
+                  >
+                    <p className="font-display text-[10px] font-bold tracking-widest text-chalk/35">
+                      {item}
+                    </p>
+
+                    <div className="mt-3 h-2 w-2/3 bg-[#E2852B]/65" />
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-6 font-body text-xs text-chalk/30">
+                Fast · Public · Shareable
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section className="py-20">
+          <div className="mb-10">
+            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
+              How GitWicket works
+            </p>
+
+            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-4xl">
+              From code to career.
+            </h2>
+          </div>
+
+          <div className="grid border-y border-chalk/10 md:grid-cols-3">
+            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:pr-8">
+              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
+                01
               </span>
 
-              <div className="h-px flex-1 bg-chalk/10" />
-            </div>
+              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
+                Get your card
+              </h3>
 
-            {/* Player B */}
-            <div className="text-left">
-              <label
-                htmlFor="player-b"
-                className="mb-2 block font-display text-[11px] font-bold uppercase tracking-[0.18em] text-[#E2852B]"
-              >
-                Developer 02
-              </label>
-
-              <div className="flex items-center rounded-md border-2 border-dusk bg-chalk transition focus-within:border-[#E2852B]">
-                <span className="pl-4 font-mono text-sm text-ink/35">
-                  @
-                </span>
-
-                <input
-                  id="player-b"
-                  type="text"
-                  value={b}
-                  onChange={(e) => setB(e.target.value)}
-                  placeholder="github.com/rival"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="w-full bg-transparent px-2 py-3.5 font-mono text-sm text-ink outline-none placeholder:text-ink/30"
-                />
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <p
-                role="alert"
-                className="mt-4 text-left font-mono text-xs text-red-400"
-              >
-                {error}
+              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
+                Enter a GitHub username and get a cricket-style developer card
+                in seconds.
               </p>
-            )}
+            </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-5 w-full rounded-md bg-[#E2852B] py-3.5 font-display text-sm font-black uppercase tracking-widest text-[#11161E] transition hover:-translate-y-0.5 hover:bg-[#F09A42] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? "Loading…" : "Compare"}
-            </button>
+            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:px-8">
+              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
+                02
+              </span>
+
+              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
+                Build your profile
+              </h3>
+
+              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
+                Add your CV and answer a few meaningful career questions.
+              </p>
+            </div>
+
+            <div className="py-8 md:pl-8">
+              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
+                03
+              </span>
+
+              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
+                See the evidence
+              </h3>
+
+              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
+                Understand strengths, gaps, project evidence and how your CV
+                lines up with your public work.
+              </p>
+            </div>
           </div>
-        </motion.form>
+        </section>
 
-        {/* Small footer hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="mt-5 max-w-sm font-body text-xs leading-relaxed text-chalk/30"
-        >
-          Compare ratings, form, player stats and underlying dimensions —
-          without changing either profile.
-        </motion.p>
+        {/* FINAL CTA */}
+        <section className="border border-[#E2852B]/25 bg-[#E2852B]/[0.025] p-7 md:p-10">
+          <div className="flex flex-col items-start justify-between gap-7 md:flex-row md:items-center">
+            <div>
+              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
+                Career Card
+              </p>
+
+              <h2 className="mt-2 font-display text-2xl font-black uppercase italic text-chalk md:text-3xl">
+                Go beyond the rating.
+              </h2>
+
+              <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-chalk/50">
+                Build a profile around what you&apos;ve actually built, what
+                you want next and what your public evidence supports.
+              </p>
+            </div>
+
+            <Link
+              href="/build-career-card"
+              className="shrink-0 border border-[#E2852B] px-6 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition hover:bg-[#E2852B] hover:text-[#11161E]"
+            >
+              Build Career Card →
+            </Link>
+          </div>
+        </section>
       </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-chalk/10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-7 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-display text-xs font-bold uppercase tracking-widest text-chalk/30">
+            GitWicket
+          </p>
+
+          <div className="flex flex-wrap gap-5">
+            <Link
+              href="/compare"
+              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
+            >
+              Compare
+            </Link>
+
+            <Link
+              href="/build-career-card"
+              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
+            >
+              Career Card
+            </Link>
+
+            <Link
+              href="/how-it-works"
+              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
+            >
+              How It Works
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

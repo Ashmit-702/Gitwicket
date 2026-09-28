@@ -24,4 +24,4 @@ export const CV_ANALYZER_ENABLED = CV_ANALYZER_URL.length > 0;
 // live. If you don't, something between "this zip" and "production" didn't
 // take — check your own git log / Vercel deployment, since this environment
 // can't see either.
-export const BUILD_MARKER = "gw-dev-2026-09-21-a";
+export const BUILD_MARKER = "gw-dev-2026-09-28-homepage-fix";

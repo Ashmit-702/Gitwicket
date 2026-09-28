@@ -67,12 +67,15 @@ export default function ShareCareerProfile({ login, name, rating }: { login: str
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
+      <motion.button
         onClick={() => setOpen((o) => !o)}
-        className="w-full rounded-full border border-chalk/20 bg-pitch/60 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk transition hover:border-bail/50 hover:text-bail"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+        className="w-full rounded-full border border-chalk/20 bg-pitch/60 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk transition-colors hover:border-bail/50 hover:text-bail"
       >
         Share career profile
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {open && (
@@ -84,16 +87,16 @@ export default function ShareCareerProfile({ login, name, rating }: { login: str
             className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-chalk/15 bg-pitch shadow-xl"
           >
             {canNativeShare && (
-              <button onClick={handleNativeShare} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80 transition hover:bg-chalk/5">
+              <motion.button whileHover={{ backgroundColor: "rgba(244,241,232,0.05)" }} onClick={handleNativeShare} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80">
                 Share…
-              </button>
+              </motion.button>
             )}
-            <button onClick={handleCopy} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80 transition hover:bg-chalk/5">
+            <motion.button whileHover={{ backgroundColor: "rgba(244,241,232,0.05)" }} onClick={handleCopy} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80">
               {copied ? "Link copied!" : "Copy link"}
-            </button>
-            <button onClick={handleTweet} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80 transition hover:bg-chalk/5">
+            </motion.button>
+            <motion.button whileHover={{ backgroundColor: "rgba(244,241,232,0.05)" }} onClick={handleTweet} className="block w-full px-4 py-3 text-left font-body text-sm text-chalk/80">
               Share on X
-            </button>
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -20,14 +20,25 @@ export default function CareerSnapshot({ card }: { card: CricketCardStats }) {
       className="rounded-xl border border-chalk/10 bg-pitch/60 p-6"
     >
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
+        <div className="relative">
+          {/* A quick glow burst right as the rating lands — the "hero moment" of the page */}
+          <motion.div
+            className="pointer-events-none absolute -left-6 -top-2 h-24 w-24 rounded-full"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: [0, 0.5, 0], scale: [0.6, 1.4, 1.6] }}
+            transition={{ duration: 1.1, delay: 0.5, ease: "easeOut" }}
+            style={{ background: "radial-gradient(circle, rgba(217,169,59,0.5), transparent 70%)" }}
+          />
           <p className="font-display text-xs uppercase tracking-widest text-leather">Career rating</p>
-          <p
-            className="mt-1 font-display text-7xl font-black italic text-bail"
+          <motion.p
+            className="relative mt-1 font-display text-7xl font-black italic text-bail"
             style={{ textShadow: TIER_GLOW[card.tier] || "none" }}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: [0.9, 1.08, 1] }}
+            transition={{ duration: 0.9, delay: 0.5, times: [0, 0.6, 1] }}
           >
             <CountUp value={card.rating} duration={0.9} />
-          </p>
+          </motion.p>
           <p className="mt-1 font-body text-xs text-chalk/50">{card.tier} tier · {card.role}</p>
           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-chalk/30">
             Verified from {card.platform === "github" ? "GitHub" : "LeetCode"}

@@ -77,7 +77,11 @@ export default function CvUpload({ onParsed }: { onParsed: (cv: ParsedCv | null)
       />
 
       {status === "idle" || status === "dragging" ? (
-        <div
+        <motion.div
+          animate={{ scale: status === "dragging" ? 1.02 : 1 }}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          transition={{ type: "spring", stiffness: 300, damping: 22 }}
           onDragOver={(e) => {
             e.preventDefault();
             setStatus("dragging");
@@ -92,13 +96,13 @@ export default function CvUpload({ onParsed }: { onParsed: (cv: ParsedCv | null)
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
-          className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition ${
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
             status === "dragging" ? "border-bail bg-bail/5" : "border-chalk/15 hover:border-chalk/30"
           }`}
         >
           <p className="font-display text-sm font-bold uppercase tracking-wide text-chalk/70">Drop your CV here</p>
           <p className="mt-1 font-body text-xs text-chalk/40">or click to browse — PDF or DOCX, up to {MAX_MB}MB</p>
-        </div>
+        </motion.div>
       ) : (
         <div className="rounded-xl border border-chalk/10 p-5">
           <div className="flex items-start justify-between gap-3">
@@ -108,12 +112,15 @@ export default function CvUpload({ onParsed }: { onParsed: (cv: ParsedCv | null)
               {status === "success" && <p className="mt-1 font-body text-xs text-bail">Parsed successfully.</p>}
               {status === "error" && <p className="mt-1 font-body text-xs text-leather">{error}</p>}
             </div>
-            <button
+            <motion.button
               onClick={handleRemove}
-              className="shrink-0 font-display text-xs uppercase tracking-widest text-chalk/40 transition hover:text-leather"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="shrink-0 font-display text-xs uppercase tracking-widest text-chalk/40 transition-colors hover:text-leather"
             >
               {status === "error" ? "Try again" : "Remove"}
-            </button>
+            </motion.button>
           </div>
 
           {status === "uploading" && (

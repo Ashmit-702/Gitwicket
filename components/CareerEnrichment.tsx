@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { CricketCardStats } from "@/lib/cricketStats";
 import { loadCareerLocal, clearCareerLocal } from "@/lib/careerStorage";
 import { buildCareerProfile, type CareerProfile, type EvidenceStatus } from "@/lib/careerProfile";
@@ -15,7 +15,16 @@ const STATUS_STYLE: Record<EvidenceStatus, string> = {
 };
 
 function StatusBadge({ status }: { status: EvidenceStatus }) {
-  return <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${STATUS_STYLE[status]}`}>{status}</span>;
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+      className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${STATUS_STYLE[status]}`}
+    >
+      {status}
+    </motion.span>
+  );
 }
 
 // Collapsed: label + status only, scannable at a glance. Expanded: the actual
@@ -33,20 +42,35 @@ function CareerProofTable({ items }: { items: CareerProfile["careerProof"] }) {
         {items.map((item, i) => {
           const isOpen = openIndex === i;
           return (
-            <div key={`${item.label}-${i}`} className="border-b border-chalk/5">
+            <motion.div key={`${item.label}-${i}`} className="border-b border-chalk/5" whileHover={{ x: 2 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
               <button type="button" onClick={() => setOpenIndex(isOpen ? null : i)} className="flex w-full items-center justify-between gap-3 py-2 text-left">
                 <span className="truncate font-body text-sm text-chalk/70">{item.label}</span>
-                <StatusBadge status={item.status} />
+                <span className="flex shrink-0 items-center gap-2">
+                  <StatusBadge status={item.status} />
+                  <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.2 }} className="text-[10px] text-chalk/30" aria-hidden>
+                    ▶
+                  </motion.span>
+                </span>
               </button>
-              {isOpen && (
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-3 pl-0.5 font-body text-xs">
-                  <dt className="text-chalk/35">{item.claimedOn.includes("CV") ? "CV claim" : "Claimed"}</dt>
-                  <dd className="text-chalk/55">{item.claimDetail}</dd>
-                  <dt className="text-chalk/35">Public evidence</dt>
-                  <dd className="text-chalk/55">{item.evidenceDetail}</dd>
-                </dl>
-              )}
-            </div>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-3 pl-0.5 font-body text-xs">
+                      <dt className="text-chalk/35">{item.claimedOn.includes("CV") ? "CV claim" : "Claimed"}</dt>
+                      <dd className="text-chalk/55">{item.claimDetail}</dd>
+                      <dt className="text-chalk/35">Public evidence</dt>
+                      <dd className="text-chalk/55">{item.evidenceDetail}</dd>
+                    </dl>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
       </div>
@@ -156,8 +180,16 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
         <div>
           <p className="mb-3 font-display text-xs font-semibold uppercase tracking-widest text-bail">Project highlights</p>
           <div className="space-y-5">
-            {profile.projectMatches.slice(0, 3).map(({ id, project, githubMatch, deploymentStatus, demoUrl }) => (
-              <div key={project.name} className="border-l-2 border-chalk/10 pl-4">
+            {profile.projectMatches.slice(0, 3).map(({ id, project, githubMatch, deploymentStatus, demoUrl }, i) => (
+              <motion.div
+                key={project.name}
+                initial={{ opacity: 0, x: -8 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08, duration: 0.4 }}
+                whileHover={{ borderColor: "rgba(217,169,59,0.4)", x: 2 }}
+                className="border-l-2 border-chalk/10 pl-4"
+              >
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <p className="font-display text-sm font-bold text-chalk/80">{project.name}</p>
                   {project.dates && <span className="font-mono text-[10px] text-chalk/30">{project.dates}</span>}
@@ -198,7 +230,7 @@ function EnrichedSections({ profile }: { profile: CareerProfile }) {
                 {profile.proudestProjectId === id && answers.personalContribution && (
                   <p className="mt-1.5 font-body text-xs italic text-chalk/40">Personal contribution: {answers.personalContribution}</p>
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -319,12 +351,15 @@ export default function CareerEnrichment({ card }: { card: CricketCardStats }) {
         <p className="mx-auto mt-2 max-w-sm font-body text-sm text-chalk/50">
           Add your CV and a few quick answers to turn this into a complete, evidence-backed career profile.
         </p>
-        <a
+        <motion.a
           href="/build-career-card"
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-bail px-5 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch transition hover:opacity-90"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-bail px-5 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch"
         >
           Build Career Card →
-        </a>
+        </motion.a>
       </motion.div>
     );
   }
@@ -334,26 +369,33 @@ export default function CareerEnrichment({ card }: { card: CricketCardStats }) {
       <EnrichedSections profile={profile} />
 
       {confirmingClear ? (
-        <div className="mt-6 rounded-lg border border-leather/30 bg-leather/5 p-3">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-6 rounded-lg border border-leather/30 bg-leather/5 p-3">
           <p className="font-body text-xs text-chalk/60">
             This clears your CV and career answers from this browser only. Your GitHub card and rating are never affected.
           </p>
           <div className="mt-2 flex gap-2">
-            <button
+            <motion.button
               onClick={() => {
                 clearCareerLocal(card.login);
                 setProfile(null);
                 setConfirmingClear(false);
               }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className="rounded-full bg-leather px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-chalk"
             >
               Clear it
-            </button>
-            <button onClick={() => setConfirmingClear(false)} className="rounded-full border border-chalk/20 px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-chalk/60">
+            </motion.button>
+            <motion.button
+              onClick={() => setConfirmingClear(false)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="rounded-full border border-chalk/20 px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-chalk/60"
+            >
               Cancel
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       ) : (
         <button onClick={() => setConfirmingClear(true)} className="mt-6 font-body text-[11px] text-chalk/30 underline decoration-dotted hover:text-chalk/50">
           Clear CV &amp; career answers from this browser

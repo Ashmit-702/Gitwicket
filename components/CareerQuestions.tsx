@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import type { CareerAnswers } from "@/lib/careerProfile";
 
 const TARGET_ROLES = [
@@ -29,17 +30,20 @@ function PillGroup({ options, value, onChange }: { options: string[]; value: str
       {options.map((opt) => {
         const selected = value === opt;
         return (
-          <button
+          <motion.button
             key={opt}
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(selected ? null : opt)}
-            className={`rounded-full border px-3 py-1.5 font-body text-xs transition ${
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className={`rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
               selected ? "border-bail bg-bail/10 text-bail" : "border-chalk/15 text-chalk/60 hover:border-chalk/30"
             }`}
           >
             {opt}
-          </button>
+          </motion.button>
         );
       })}
     </div>
@@ -60,18 +64,21 @@ function MultiPillGroup({ options, values, onChange, max }: { options: string[];
         const selected = values.includes(opt);
         const disabled = !selected && values.length >= max;
         return (
-          <button
+          <motion.button
             key={opt}
             type="button"
             aria-pressed={selected}
             disabled={disabled}
             onClick={() => toggle(opt)}
-            className={`rounded-full border px-3 py-1.5 font-body text-xs transition ${
+            whileHover={disabled ? undefined : { scale: 1.04 }}
+            whileTap={disabled ? undefined : { scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className={`rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
               selected ? "border-bail bg-bail/10 text-bail" : disabled ? "border-chalk/10 text-chalk/25" : "border-chalk/15 text-chalk/60 hover:border-chalk/30"
             }`}
           >
             {opt}
-          </button>
+          </motion.button>
         );
       })}
     </div>

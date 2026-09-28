@@ -25,6 +25,7 @@ export default function CareerDimensionsGrid({ dimensions }: { dimensions: Dimen
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.35 }}
+            whileHover={{ backgroundColor: "rgba(244,241,232,0.02)" }}
             className="border-b border-chalk/10 first:border-t"
           >
             <button type="button" onClick={() => setOpenLabel(isOpen ? null : d.label)} aria-expanded={isOpen} className="w-full py-3 text-left">

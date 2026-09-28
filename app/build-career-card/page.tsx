@@ -61,9 +61,13 @@ export default function BuildCareerCardPage() {
             const n = (i + 1) as Step;
             return (
               <div key={label} className="flex flex-1 items-center gap-2">
-                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold ${n <= step ? "bg-bail text-pitch" : "bg-chalk/10 text-chalk/40"}`}>
+                <motion.div
+                  animate={{ scale: n === step ? [1, 1.15, 1] : 1 }}
+                  transition={{ duration: 0.4 }}
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold transition-colors duration-300 ${n <= step ? "bg-bail text-pitch" : "bg-chalk/10 text-chalk/40"}`}
+                >
                   {n}
-                </div>
+                </motion.div>
                 <span className={`hidden font-display text-[10px] uppercase tracking-wide sm:inline ${n <= step ? "text-chalk/70" : "text-chalk/30"}`}>{label}</span>
                 {i < STEP_LABELS.length - 1 && <div className={`h-px flex-1 ${n < step ? "bg-bail" : "bg-chalk/10"}`} />}
               </div>
@@ -84,12 +88,15 @@ export default function BuildCareerCardPage() {
                 className="mt-4 w-full rounded-lg border border-chalk/15 bg-transparent px-3 py-2.5 font-body text-sm text-chalk placeholder:text-chalk/30 focus:border-bail focus:outline-none"
               />
               {usernameError && <p className="mt-2 font-body text-xs text-leather">{usernameError}</p>}
-              <button
+              <motion.button
                 onClick={handleNextFromStep1}
-                className="mt-6 w-full rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch transition hover:opacity-90"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                className="mt-6 w-full rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch"
               >
                 Continue →
-              </button>
+              </motion.button>
             </motion.div>
           )}
 
@@ -101,18 +108,24 @@ export default function BuildCareerCardPage() {
                 <CvUpload onParsed={setParsedCv} />
               </div>
               <div className="mt-6 flex gap-3">
-                <button
+                <motion.button
                   onClick={() => setStep(1)}
-                  className="flex-1 rounded-full border border-chalk/20 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk/70 transition hover:border-chalk/40"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex-1 rounded-full border border-chalk/20 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk/70 transition-colors hover:border-chalk/40"
                 >
                   ← Back
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={() => setStep(3)}
-                  className="flex-1 rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch transition hover:opacity-90"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex-1 rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch"
                 >
                   {parsedCv ? "Continue →" : "Skip →"}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -129,19 +142,25 @@ export default function BuildCareerCardPage() {
                 />
               </div>
               <div className="mt-8 flex gap-3">
-                <button
+                <motion.button
                   onClick={() => setStep(2)}
-                  className="flex-1 rounded-full border border-chalk/20 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk/70 transition hover:border-chalk/40"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex-1 rounded-full border border-chalk/20 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-chalk/70 transition-colors hover:border-chalk/40"
                 >
                   ← Back
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="flex-1 rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch transition hover:opacity-90 disabled:opacity-60"
+                  whileHover={generating ? undefined : { scale: 1.02 }}
+                  whileTap={generating ? undefined : { scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex-1 rounded-full bg-bail py-2.5 font-display text-xs font-bold uppercase tracking-widest text-pitch disabled:opacity-60"
                 >
                   {generating ? "Generating…" : "Generate Career Card →"}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}

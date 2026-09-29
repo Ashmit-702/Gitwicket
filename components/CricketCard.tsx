@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { SITE_HOST } from "@/lib/config";
 import type { CricketCardStats, Platform, Tier } from "@/lib/cricketStats";
 import { countryFlag } from "@/lib/countries";
 
@@ -337,7 +338,7 @@ export default function CricketCard({ card, celebrate = true }: { card: CricketC
       </div>
 
       <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-chalk/40">
-        gitwicket.dev · {card.accountAgeYears}yr career · {card.activeYears}yr active
+        {SITE_HOST} · {card.accountAgeYears}yr career · {card.activeYears}yr active
       </p>
     </motion.div>
   );

@@ -2,74 +2,61 @@
 
 import { motion } from "framer-motion";
 
+// Illustrative sample only — fictional, anonymised, never real user data.
 const SAMPLE = {
-  rating: 68,
-  form: 71,
   role: "AI/ML Engineer",
-  strengths: ["Engineering Activity", "Project Strength"],
-  projects: ["Exam Grading Platform", "Sentiment Analyzer"],
-  proof: [
-    { label: "Python", status: "Strong" },
-    { label: "Flask", status: "Moderate" },
+  claims: [
+    { skill: "Python", level: 4, status: "Strong evidence", note: "4 repos · recent activity" },
+    { skill: "NLP", level: 3, status: "Moderate evidence", note: "2 repos · README + deps" },
+    { skill: "AWS", level: 1, status: "Limited evidence", note: "1 older repo" },
+    { skill: "Kubernetes", level: 0, status: "No public evidence", note: "CV claim only" },
   ],
+  next: "Your CV lists AWS, but public evidence is limited. Deploy one project there and document the architecture.",
 };
 
 export default function CareerCardPreview() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
+    <motion.figure
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      className="rounded-xl border border-chalk/10 bg-pitch/60 p-5"
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+      whileHover={{ y: -3 }}
+      className="m-0 border border-chalk/10 bg-pitch/70 p-5 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.8)]"
+      aria-label="Sample Career Card preview"
     >
-      <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-chalk/30">Sample profile — illustrative</p>
+      <figcaption className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-chalk/35">
+        <span>Sample · illustrative</span>
+        <span className="text-[#E2852B]">Target: {SAMPLE.role}</span>
+      </figcaption>
 
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="font-display text-xs uppercase tracking-widest text-leather">Career rating</p>
-          <p className="font-display text-4xl font-black italic text-chalk">{SAMPLE.rating}</p>
-        </div>
-        <div className="text-right">
-          <p className="font-display text-xs uppercase tracking-widest text-leather">Form</p>
-          <p className="font-display text-xl font-bold text-chalk">{SAMPLE.form}</p>
-        </div>
-      </div>
-      <p className="mt-1 font-body text-xs text-chalk/50">{SAMPLE.role}</p>
-
-      <div className="mt-4 border-t border-chalk/10 pt-4">
-        <p className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-bail">Strengths</p>
-        <div className="flex flex-wrap gap-1.5">
-          {SAMPLE.strengths.map((s) => (
-            <span key={s} className="rounded-full bg-bail/10 px-2.5 py-1 font-mono text-[10px] text-bail">
-              {s}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <p className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-bail">Projects</p>
-        <div className="flex flex-wrap gap-1.5">
-          {SAMPLE.projects.map((p) => (
-            <span key={p} className="rounded-full bg-chalk/5 px-2.5 py-1 font-mono text-[10px] text-chalk/60">
-              {p}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <p className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-bail">Career proof</p>
-        <div className="space-y-1">
-          {SAMPLE.proof.map((p) => (
-            <div key={p.label} className="flex items-center justify-between font-body text-xs">
-              <span className="text-chalk/60">{p.label}</span>
-              <span className="rounded-full bg-chalk/5 px-2 py-0.5 font-mono text-[9px] uppercase text-chalk/40">{p.status} evidence</span>
+      <p className="mt-5 font-display text-[11px] font-bold uppercase tracking-widest text-chalk/45">Career Proof</p>
+      <ul className="mt-3 divide-y divide-chalk/10 border-y border-chalk/10">
+        {SAMPLE.claims.map((c, i) => (
+          <li key={c.skill} className="py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display text-sm font-black uppercase text-chalk">{c.skill}</span>
+              <span className={`font-body text-[11px] ${c.level >= 3 ? "text-[#E2852B]" : "text-chalk/45"}`}>{c.status}</span>
             </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
+            <div className="mt-2 flex items-center gap-1" aria-hidden>
+              {[0, 1, 2, 3].map((seg) => (
+                <motion.span
+                  key={seg}
+                  className={`h-1 flex-1 origin-left ${seg < c.level ? "bg-[#E2852B]" : "bg-chalk/10"}`}
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: 0.25 + i * 0.1 + seg * 0.05 }}
+                />
+              ))}
+            </div>
+            <p className="mt-1.5 font-body text-[11px] text-chalk/35">{c.note}</p>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 font-display text-[11px] font-bold uppercase tracking-widest text-chalk/45">Next step</p>
+      <p className="mt-1.5 font-body text-xs leading-relaxed text-chalk/65">{SAMPLE.next}</p>
+    </motion.figure>
   );
 }

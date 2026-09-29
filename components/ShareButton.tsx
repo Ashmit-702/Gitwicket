@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_URL } from "@/lib/config";
 import { useState } from "react";
 
 export default function ShareButton({
@@ -19,7 +20,7 @@ export default function ShareButton({
   const [saving, setSaving] = useState(false);
 
   const platformLabel = platform === "github" ? "GitHub" : "LeetCode";
-  const pageUrl = typeof window !== "undefined" ? window.location.href : `https://gitwicket.dev/${login}`;
+  const pageUrl = typeof window !== "undefined" ? window.location.href : `${SITE_URL}/${login}`;
   const tweetText = `I just rated my ${platformLabel} as a ${rating} RTG ${tier}-tier cricket card on GitWicket 🏏\n\nRate yours:`;
 
   async function handleShare() {

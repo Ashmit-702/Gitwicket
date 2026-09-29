@@ -7,6 +7,7 @@ import CompareClash from "@/components/CompareClash";
 import CompareStatPanel from "@/components/CompareStatPanel";
 import CompareWinnerBanner from "@/components/CompareWinnerBanner";
 import WinnerGlow from "@/components/WinnerGlow";
+import CompareDimensions, { LEVEL_MARGIN } from "@/components/compare/CompareDimensions";
 import type { CricketCardStats } from "@/lib/cricketStats";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function ComparePage({ params }: Props) {
   ]);
   if (!cardA || !cardB) notFound();
 
-  const overallWinner = cardA.rating === cardB.rating ? null : cardA.rating > cardB.rating ? cardA : cardB;
+  const overallWinner = Math.abs(cardA.rating - cardB.rating) < LEVEL_MARGIN ? null : cardA.rating > cardB.rating ? cardA : cardB;
 
   return (
     <main className="mow-lines relative min-h-screen overflow-hidden px-6 py-8">
@@ -49,7 +50,9 @@ export default async function ComparePage({ params }: Props) {
         <h1 className="mt-1 font-display text-3xl font-black uppercase italic text-chalk sm:text-4xl">
           @{cardA.login} <span className="text-chalk/30">vs</span> @{cardB.login}
         </h1>
-        {overallWinner && (
+        {!overallWinner ? (
+          <CompareWinnerBanner name={cardA.name} winnerRating={Math.max(cardA.rating, cardB.rating)} loserRating={Math.min(cardA.rating, cardB.rating)} />
+        ) : (
           <CompareWinnerBanner
             name={overallWinner.name}
             winnerRating={overallWinner.rating}
@@ -74,6 +77,10 @@ export default async function ComparePage({ params }: Props) {
             <CricketCard card={cardB} celebrate={false} />
           </WinnerGlow>
         </PageReveal>
+      </div>
+
+      <div className="relative z-10">
+        <CompareDimensions a={cardA} b={cardB} />
       </div>
     </main>
   );

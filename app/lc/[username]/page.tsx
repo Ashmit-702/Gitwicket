@@ -8,6 +8,7 @@ import DistributionChart from "@/components/DistributionChart";
 import ShareButton from "@/components/ShareButton";
 import CountryPicker from "@/components/CountryPicker";
 import PageReveal from "@/components/PageReveal";
+import { SITE_URL } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export default async function LeetCodeCardPage({ params, searchParams }: Props) 
       <PageReveal delay={0.2} className="relative z-10 mx-auto mt-14 max-w-xl border-t border-chalk/10 pt-6 text-left">
         <p className="font-display text-xs uppercase tracking-widest text-[#E2852B]">Embed this card</p>
         <pre className="mt-3 overflow-x-auto rounded-md border border-turf/40 bg-pitch p-4 font-mono text-xs text-chalk/80">
-{`[![${card.login}'s GitWicket card](https://gitwicket.dev/api/lc-card/${card.login})](https://gitwicket.dev/lc/${card.login})`}
+{`[![${card.login}'s GitWicket card](${SITE_URL}/api/lc-card/${card.login})](${SITE_URL}/lc/${card.login})`}
         </pre>
         <a
           href="/"

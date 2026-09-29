@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_URL } from "@/lib/config";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loadCareerLocal } from "@/lib/careerStorage";
@@ -24,7 +25,7 @@ export default function ShareCareerProfile({ login, name, rating }: { login: str
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  const pageUrl = typeof window !== "undefined" ? window.location.href : `https://gitwicket.dev/${login}/career`;
+  const pageUrl = typeof window !== "undefined" ? window.location.href : `${SITE_URL}/${login}/career`;
   // Only claims what's actually verified — rating and role (a self-reported career
   // answer, framed as such), never anything CV-derived that isn't public on this page.
   const shareText = [

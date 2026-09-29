@@ -7,7 +7,8 @@ const display = Oswald({ subsets: ["latin"], weight: ["500", "600", "700"], vari
 const body = Work_Sans({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-mono" });
 
-const SITE_URL = "https://gitwicket.dev"; // swap for your real domain once deployed
+import { SITE_URL } from "@/lib/config";
+import MotionProvider from "@/components/shared/MotionProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body className="font-body">
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <Analytics />
       </body>
     </html>

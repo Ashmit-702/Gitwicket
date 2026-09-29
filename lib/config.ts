@@ -24,4 +24,12 @@ export const CV_ANALYZER_ENABLED = CV_ANALYZER_URL.length > 0;
 // live. If you don't, something between "this zip" and "production" didn't
 // take — check your own git log / Vercel deployment, since this environment
 // can't see either.
+// ============================================================================
+// SITE ORIGIN — the ONE place the canonical production URL lives.
+// Switching to gitwicket.dev later = change this single value (or set
+// NEXT_PUBLIC_SITE_URL in Vercel). Everything else derives from it.
+// ============================================================================
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://gitwicket-ten.vercel.app").replace(/\/$/, "");
+export const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "");
+
 export const BUILD_MARKER = "gw-dev-2026-09-28-homepage-fix";

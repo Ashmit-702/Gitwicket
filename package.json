@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "test:rating": "tsx scripts/calibrate-rating.ts",
-    "test:rating:regression": "tsx scripts/regression-two-users.ts"
+    "test:rating:regression": "tsx scripts/regression-two-users.ts",
+    "verify:routes": "tsx scripts/verify-routes.ts",
+    "verify:rating-frozen": "tsx scripts/verify-rating-untouched.ts",
+    "verify": "npm run verify:routes && npm run verify:rating-frozen && tsc --noEmit && npm run test:rating"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

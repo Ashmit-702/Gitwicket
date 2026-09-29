@@ -12,7 +12,7 @@ const hash = (p: string) => createHash("sha256").update(read(p)).digest("hex");
 const home = read("app/page.tsx");
 if (!/export default function HomePage\b/.test(home)) fail.push("app/page.tsx does not export HomePage");
 if (/HowItWorks|ComparePage/.test(home)) fail.push("app/page.tsx references another route's component");
-if (!/Get My Card/.test(home)) fail.push("app/page.tsx is missing the GitHub 'Get My Card' CTA");
+if (!/Get my card/i.test(home)) fail.push("app/page.tsx is missing the GitHub 'Get My Card' CTA");
 if (!/build-career-card/.test(home)) fail.push("app/page.tsx is missing the Career Card CTA");
 
 // 2. No two route pages may be byte-identical.

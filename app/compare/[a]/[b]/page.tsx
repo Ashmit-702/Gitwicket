@@ -7,6 +7,7 @@ import CompareClash from "@/components/CompareClash";
 import CompareStatPanel from "@/components/CompareStatPanel";
 import CompareWinnerBanner from "@/components/CompareWinnerBanner";
 import WinnerGlow from "@/components/WinnerGlow";
+import HeadToHead from "@/components/compare/HeadToHead";
 import CompareDimensions, { LEVEL_MARGIN } from "@/components/compare/CompareDimensions";
 import type { CricketCardStats } from "@/lib/cricketStats";
 
@@ -45,43 +46,19 @@ export default async function ComparePage({ params }: Props) {
         </a>
       </div>
 
-      <PageReveal className="relative z-10 mx-auto mt-6 max-w-6xl text-center">
-        <p className="font-display text-xs uppercase tracking-widest text-leather">Head to head</p>
-        <h1 className="mt-1 font-display text-3xl font-black uppercase italic text-chalk sm:text-4xl">
-          @{cardA.login} <span className="text-chalk/30">vs</span> @{cardB.login}
-        </h1>
-        {!overallWinner ? (
-          <CompareWinnerBanner name={cardA.name} winnerRating={Math.max(cardA.rating, cardB.rating)} loserRating={Math.min(cardA.rating, cardB.rating)} />
-        ) : (
-          <CompareWinnerBanner
-            name={overallWinner.name}
-            winnerRating={overallWinner.rating}
-            loserRating={overallWinner === cardA ? cardB.rating : cardA.rating}
-          />
-        )}
-      </PageReveal>
-
-      <div className="relative z-10 mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center gap-6 lg:flex-row lg:items-start lg:gap-4">
-        <PageReveal delay={0} y={20} className="flex flex-col items-center">
-          <WinnerGlow isWinner={overallWinner === cardA}>
-            <CricketCard card={cardA} celebrate={false} />
-          </WinnerGlow>
-        </PageReveal>
-
-        <PageReveal delay={0.15} className="w-full max-w-sm">
-          <CompareStatPanel cardA={cardA} cardB={cardB} />
-        </PageReveal>
-
-        <PageReveal delay={0.3} y={20} className="flex flex-col items-center">
-          <WinnerGlow isWinner={overallWinner === cardB}>
-            <CricketCard card={cardB} celebrate={false} />
-          </WinnerGlow>
-        </PageReveal>
-      </div>
+      <div className="relative z-10 mx-auto mt-8 max-w-6xl"><HeadToHead a={cardA} b={cardB} /></div>
 
       <div className="relative z-10">
         <CompareDimensions a={cardA} b={cardB} />
       </div>
+
+      <details className="relative z-10 mx-auto mt-14 max-w-5xl border-t border-chalk/10 pt-6">
+        <summary className="cursor-pointer font-display text-xs font-bold uppercase tracking-widest text-chalk/55 hover:text-[#E2852B]">Show both full cards</summary>
+        <div className="mt-8 flex flex-col items-center justify-center gap-8 lg:flex-row">
+          <CricketCard card={cardA} celebrate={false} />
+          <CricketCard card={cardB} celebrate={false} />
+        </div>
+      </details>
     </main>
   );
 }

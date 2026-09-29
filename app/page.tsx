@@ -1,327 +1,47 @@
-"use client";
-
-import { FormEvent, useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import CareerCardPreview from "@/components/CareerCardPreview";
 
-export default function HomePage() {
-  const router = useRouter();
+export const dynamic = "force-static";
 
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
+export const metadata: Metadata = {
+  title: "How GitWicket works",
+  alternates: { canonical: "/how-it-works" },
+};
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+// Index only. The per-platform explanations live in their own routes so that
+// this file can never again be a byte-copy of one of them (that duplication is
+// what let an earlier deploy serve the wrong page). scripts/verify-routes.ts
+// fails the build if these files ever become identical again.
+const GUIDES = [
+  { href: "/how-it-works/github", title: "GitHub rating", copy: "How commits, projects, collaboration and impact become your cricket stats and overall rating." },
+  { href: "/how-it-works/leetcode", title: "LeetCode rating", copy: "How solved problems, difficulty mix, contests and consistency become a LeetCode card." },
+];
 
-    const cleanUsername = username.trim().replace(/^@/, "");
-
-    if (!cleanUsername) return;
-
-    setLoading(true);
-
-    router.push(`/${encodeURIComponent(cleanUsername)}`);
-  }
-
+export default function HowItWorksIndexPage() {
   return (
-    <main className="mow-lines min-h-screen overflow-hidden">
-      {/* HEADER */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7">
-        <Link
-          href="/"
-          className="font-display text-sm font-black uppercase tracking-[0.18em] text-chalk"
-        >
-          GitWicket
-        </Link>
-
-        <nav className="flex items-center gap-5 sm:gap-7">
-          <Link
-            href="/compare"
-            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
-          >
-            Compare
-          </Link>
-
-          <Link
-            href="/how-it-works"
-            className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-[#E2852B]"
-          >
-            How It Works
-          </Link>
-        </nav>
-      </header>
-
-      {/* HERO */}
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-14 md:pb-24 md:pt-20">
-        <motion.div className="max-w-4xl" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}>
-          <p className="font-display text-xs font-bold uppercase tracking-[0.25em] text-[#E2852B]">
-            GitHub × Career Intelligence
-          </p>
-
-          <h1 className="mt-5 font-display text-5xl font-black uppercase italic leading-[0.88] text-chalk sm:text-6xl md:text-8xl">
-            Your developer
-            <br />
-            career,{" "}
-            <span className="text-[#E2852B]">
-              scouted.
-            </span>
-          </h1>
-
-          <p className="mt-7 max-w-2xl font-body text-base leading-relaxed text-chalk/65 md:text-lg">
-            Turn your GitHub into a cricket card in seconds. Then go deeper
-            with a Career Card built from your work, CV, coding activity and
-            career goals.
-          </p>
-        </motion.div>
-
-        {/* GITHUB INPUT */}
-        <motion.div className="mt-10 max-w-2xl" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15, ease: "easeOut" }}>
-          <form onSubmit={handleSubmit}>
-            <label
-              htmlFor="github-username"
-              className="mb-3 block font-display text-xs font-bold uppercase tracking-widest text-chalk/45"
-            >
-              GitHub username
-            </label>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex flex-1 items-center border border-chalk/15 bg-chalk/[0.025] transition focus-within:border-[#E2852B]/70">
-                <span className="pl-4 font-body text-chalk/30">
-                  @
+    <main className="mow-lines min-h-screen px-6 py-10">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/" className="font-display text-xs uppercase tracking-widest text-chalk/50 transition hover:text-bail">← Home</Link>
+        <p className="mt-10 font-display text-xs font-bold uppercase tracking-[0.25em] text-[#E2852B]">How it works</p>
+        <h1 className="mt-3 font-display text-4xl font-black uppercase italic text-chalk md:text-5xl">Pick a rating to unpack.</h1>
+        <p className="mt-4 max-w-xl font-body text-sm leading-relaxed text-chalk/60">
+          The Cricket Card rating comes only from public GitHub or LeetCode activity. Your CV, career answers and LinkedIn link
+          never change it — they only feed the Career Card.
+        </p>
+        <ul className="mt-10 divide-y divide-chalk/10 border-y border-chalk/10">
+          {GUIDES.map((g) => (
+            <li key={g.href}>
+              <Link href={g.href} className="group flex items-start justify-between gap-6 py-6 transition hover:pl-2">
+                <span>
+                  <span className="block font-display text-xl font-black uppercase text-chalk">{g.title}</span>
+                  <span className="mt-2 block max-w-lg font-body text-sm text-chalk/50">{g.copy}</span>
                 </span>
-
-                <input
-                  id="github-username"
-                  name="username"
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="yourusername"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className="min-w-0 flex-1 bg-transparent px-2 py-4 font-body text-base text-chalk outline-none placeholder:text-chalk/25"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !username.trim()}
-                className="border border-[#E2852B] bg-[#E2852B] px-7 py-4 font-display text-sm font-black uppercase tracking-widest text-[#11161E] transition hover:-translate-y-0.5 hover:bg-[#F09A42] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {loading ? "Loading..." : "Get My Card"}
-              </button>
-            </div>
-
-            <p className="mt-3 font-body text-xs text-chalk/30">
-              No signup. Public GitHub data only.
-            </p>
-          </form>
-        </motion.div>
-
-        {/* CAREER CARD HIGHLIGHT */}
-        <section className="mt-16 border-y border-chalk/10 py-10 md:mt-20">
-          <div className="max-w-3xl">
-            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
-              The deeper layer
-            </p>
-
-            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-5xl">
-              Build your Career Card.
-            </h2>
-
-            <p className="mt-4 max-w-2xl font-body text-sm leading-relaxed text-chalk/55 md:text-base">
-              Combine GitHub, your CV, coding activity and career goals into
-              one evidence-backed developer profile.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-5 md:grid-cols-[1.25fr_1fr]">
-            {/* CAREER CARD */}
-            <Link
-              href="/build-career-card"
-              className="group border border-[#E2852B]/35 bg-[#E2852B]/[0.025] p-6 transition hover:border-[#E2852B]/70 hover:bg-[#E2852B]/[0.045] md:p-8"
-            >
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                    Career Card
-                  </p>
-
-                  <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
-                    What you&apos;ve built.
-                  </h3>
-                </div>
-
-                <span className="text-2xl text-chalk/20 transition group-hover:text-[#E2852B]">
-                  →
-                </span>
-              </div>
-
-              <div className="mt-6"><CareerCardPreview /></div>
-
-              <div className="mt-8 inline-flex border border-[#E2852B] px-5 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition group-hover:bg-[#E2852B] group-hover:text-[#11161E]">
-                Build Career Card →
-              </div>
-            </Link>
-
-            {/* CRICKET CARD */}
-            <div className="border border-chalk/10 bg-chalk/[0.02] p-6 md:p-8">
-              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                Cricket Card
-              </p>
-
-              <h3 className="mt-3 font-display text-2xl font-black uppercase italic text-chalk">
-                How you play.
-              </h3>
-
-              <p className="mt-4 font-body text-sm leading-relaxed text-chalk/50">
-                GitHub activity becomes a cricket player card with an overall
-                rating, current form, player stats, dimensions and comparison.
-              </p>
-
-              <div className="mt-8 grid grid-cols-3 gap-2">
-                {["OVR", "FORM", "STATS"].map((item) => (
-                  <div
-                    key={item}
-                    className="border border-chalk/10 p-3"
-                  >
-                    <p className="font-display text-[10px] font-bold tracking-widest text-chalk/35">
-                      {item}
-                    </p>
-
-                    <div className="mt-3 h-2 w-2/3 bg-[#E2852B]/65" />
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-6 font-body text-xs text-chalk/30">
-                Fast · Public · Shareable
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* HOW IT WORKS */}
-        <section className="py-20">
-          <div className="mb-10">
-            <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-[#E2852B]">
-              How GitWicket works
-            </p>
-
-            <h2 className="mt-3 font-display text-3xl font-black uppercase italic text-chalk md:text-4xl">
-              From code to career.
-            </h2>
-          </div>
-
-          <div className="grid border-y border-chalk/10 md:grid-cols-3">
-            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:pr-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                01
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                Get your card
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Enter a GitHub username and get a cricket-style developer card
-                in seconds.
-              </p>
-            </div>
-
-            <div className="border-b border-chalk/10 py-8 md:border-b-0 md:border-r md:px-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                02
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                Build your profile
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Add your CV and answer a few meaningful career questions.
-              </p>
-            </div>
-
-            <div className="py-8 md:pl-8">
-              <span className="font-display text-xs font-bold tracking-widest text-[#E2852B]">
-                03
-              </span>
-
-              <h3 className="mt-3 font-display text-xl font-black uppercase text-chalk">
-                See the evidence
-              </h3>
-
-              <p className="mt-3 font-body text-sm leading-relaxed text-chalk/50">
-                Understand strengths, gaps, project evidence and how your CV
-                lines up with your public work.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* FINAL CTA */}
-        <section className="border border-[#E2852B]/25 bg-[#E2852B]/[0.025] p-7 md:p-10">
-          <div className="flex flex-col items-start justify-between gap-7 md:flex-row md:items-center">
-            <div>
-              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#E2852B]">
-                Career Card
-              </p>
-
-              <h2 className="mt-2 font-display text-2xl font-black uppercase italic text-chalk md:text-3xl">
-                Go beyond the rating.
-              </h2>
-
-              <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-chalk/50">
-                Build a profile around what you&apos;ve actually built, what
-                you want next and what your public evidence supports.
-              </p>
-            </div>
-
-            <Link
-              href="/build-career-card"
-              className="shrink-0 border border-[#E2852B] px-6 py-3 font-display text-xs font-black uppercase tracking-widest text-[#E2852B] transition hover:bg-[#E2852B] hover:text-[#11161E]"
-            >
-              Build Career Card →
-            </Link>
-          </div>
-        </section>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-chalk/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display text-xs font-bold uppercase tracking-widest text-chalk/30">
-            GitWicket
-          </p>
-
-          <div className="flex flex-wrap gap-5">
-            <Link
-              href="/compare"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              Compare
-            </Link>
-
-            <Link
-              href="/build-career-card"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              Career Card
-            </Link>
-
-            <Link
-              href="/how-it-works"
-              className="font-body text-xs text-chalk/35 transition hover:text-chalk"
-            >
-              How It Works
-            </Link>
-          </div>
-        </div>
-      </footer>
+                <span aria-hidden className="text-2xl text-chalk/20 transition group-hover:text-[#E2852B]">→</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </main>
   );
 }

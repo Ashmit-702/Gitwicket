@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCard } from "@/lib/getCard";
 import { careerSummary } from "@/lib/cricketStats";
 import PageReveal from "@/components/PageReveal";
-import CareerSnapshot from "@/components/CareerSnapshot";
+import ScoutingHeader from "@/components/career/ScoutingHeader";
 import CareerStrengths from "@/components/CareerStrengths";
 import CareerDimensionsGrid from "@/components/CareerDimensionsGrid";
 import CareerEnrichment from "@/components/CareerEnrichment";
@@ -35,7 +35,7 @@ export default async function CareerCardPage({ params }: Props) {
         <span className="ember" />
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-3xl items-center justify-between">
+      <div className="relative z-10 mx-auto flex max-w-4xl items-center justify-between">
         <a href={`/${card.login}`} className="flex items-center gap-2 font-display text-xs uppercase tracking-widest text-chalk/70 transition hover:text-bail">
           <span aria-hidden>←</span> Back to card
         </a>
@@ -44,22 +44,11 @@ export default async function CareerCardPage({ params }: Props) {
         </a>
       </div>
 
-      <PageReveal className="relative z-10 mx-auto mt-8 max-w-3xl">
-        <p className="font-display text-xs uppercase tracking-widest text-bail">Career card</p>
-        <h1 className="mt-1 font-display text-3xl font-black uppercase italic text-chalk sm:text-4xl">{card.name}</h1>
-        <p className="mt-1 font-body text-sm text-chalk/60">
-          @{card.login} · {card.tier} tier {card.role}
-        </p>
-        <p className="mt-3 max-w-lg font-body text-sm text-chalk/50">See the evidence behind your developer profile.</p>
-      </PageReveal>
+      <div className="relative z-10 mx-auto mt-8 max-w-4xl"><ScoutingHeader card={card} /></div>
 
       {/* One continuous story, not a pile of cards — sections separated by whitespace
           and dividers rather than repeated borders/boxes. */}
-      <div className="relative z-10 mx-auto mt-10 max-w-3xl space-y-12">
-        <PageReveal delay={0.05}>
-          <CareerSnapshot card={card} />
-        </PageReveal>
-
+      <div className="relative z-10 mx-auto mt-10 max-w-4xl space-y-12">
         <PageReveal delay={0.1}>
           <CareerStrengths strengths={strengths} developing={developing} />
         </PageReveal>

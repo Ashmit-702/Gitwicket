@@ -32,4 +32,4 @@ export const CV_ANALYZER_ENABLED = CV_ANALYZER_URL.length > 0;
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://gitwicket-ten.vercel.app").replace(/\/$/, "");
 export const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "");
 
-export const BUILD_MARKER = "gw-dev-2026-09-28-homepage-fix";
+export const BUILD_MARKER = "gw-2026-09-29-redesign-v2";
